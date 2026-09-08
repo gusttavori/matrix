@@ -1,0 +1,170 @@
+/* ==========================================
+   EDUCAÇÃO MATRIX — Form Styles
+   ========================================== */
+
+/* ---- Form Group ---- */
+.form-group {
+  margin-bottom: var(--space-4);
+}
+
+.form-group__label {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  margin-bottom: var(--space-1);
+}
+
+.form-group__required {
+  color: var(--danger-500);
+  margin-left: 2px;
+}
+
+.form-group__hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  margin-top: var(--space-1);
+}
+
+.form-group__error {
+  font-size: var(--font-size-xs);
+  color: var(--danger-600);
+  margin-top: var(--space-1);
+}
+
+/* ---- Input ---- */
+.input {
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-family);
+  font-size: 16px !important; /* Trava anti-zoom no iOS */
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(5, 184, 141, 0.15); /* Foco Verde Matrix */
+}
+
+.input:disabled {
+  background: var(--gray-50);
+  color: var(--text-tertiary);
+  cursor: not-allowed;
+}
+
+.input--error {
+  border-color: var(--danger-500);
+}
+
+.input--error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+/* ---- Textarea ---- */
+textarea.input {
+  height: auto;
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+/* ---- Select ---- */
+.select {
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-family);
+  font-size: 16px !important; /* Trava anti-zoom no iOS */
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: var(--space-10);
+}
+
+.select:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(5, 184, 141, 0.15);
+}
+
+.select:disabled {
+  background-color: var(--gray-50);
+  color: var(--text-tertiary);
+  cursor: not-allowed;
+}
+
+/* ---- Checkbox / Radio ---- */
+.checkbox-group,
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.checkbox-label,
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  min-height: 36px;
+}
+
+.checkbox-label input[type="checkbox"],
+.radio-label input[type="radio"] {
+  width: 20px; 
+  height: 20px; 
+  accent-color: var(--primary-600);
+  cursor: pointer;
+}
+
+/* ---- Search Input ---- */
+.search-input {
+  position: relative;
+}
+
+.search-input__icon {
+  position: absolute;
+  left: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.search-input .input {
+  padding-left: var(--space-10);
+}
+
+/* ---- Form Row ---- */
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4);
+}
+
+/* ---- Form Actions ---- */
+.form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-light);
+}

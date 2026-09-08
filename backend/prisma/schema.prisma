@@ -1,0 +1,424 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== ENUMS ====================
+
+enum Role {
+  ADMIN
+  SECRETARY
+  TEACHER
+  STUDENT
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  JUSTIFIED
+}
+
+enum GradeStatus {
+  GRADED
+  NOT_TAKEN // Não realizada
+}
+
+enum StudentStatus {
+  ACTIVE
+  INACTIVE
+  TRANSFERRED
+}
+
+// ==================== PLATAFORMA ====================
+
+model Plan {
+  id           Int      @id @default(autoincrement())
+  name         String   @db.VarChar(100)
+  description  String?  @db.Text
+  price        Decimal  @db.Decimal(10, 2)
+  studentLimit Int
+  teacherLimit Int
+  classLimit   Int
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+// ==================== INSTITUIÇÃO ====================
+
+model Institution {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(200)
+  tradeName String?  @db.VarChar(200)
+  document  String?  @db.VarChar(20)
+  email     String   @db.VarChar(200)
+  phone     String?  @db.VarChar(20)
+  address   String?  @db.VarChar(300)
+  city      String?  @db.VarChar(100)
+  state     String?  @db.VarChar(2)
+  logo      String?  @db.VarChar(500)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users                User[]
+  students             Student[]
+  teachers             Teacher[]
+  classes              Class[]
+  subjects             Subject[]
+  teacherClassSubjects TeacherClassSubject[]
+  academicSettings     AcademicSetting[]
+  academicPeriods      AcademicPeriod[]
+  lessons              Lesson[]
+  assessments          Assessment[]
+  grades               Grade[]
+  attendances          Attendance[]
+  studentObservations  StudentObservation[]
+  subscriptions        Subscription[]
+
+  @@map("institutions")
+}
+
+model Subscription {
+  id                     Int                @id @default(autoincrement())
+  institutionId          Int
+  planId                 Int
+  status                 SubscriptionStatus @default(TRIAL)
+  startDate              DateTime           @default(now())
+  endDate                DateTime?
+  externalSubscriptionId String?            @db.VarChar(200)
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  institution Institution @relation(fields: [institutionId], references: [id])
+  plan        Plan        @relation(fields: [planId], references: [id])
+
+  @@index([institutionId])
+  @@index([planId])
+  @@map("subscriptions")
+}
+
+// ==================== USUÁRIOS ====================
+
+model User {
+  id            Int      @id @default(autoincrement())
+  institutionId Int
+  name          String   @db.VarChar(200)
+  email         String   @db.VarChar(200)
+  password      String   @db.VarChar(200)
+  role          Role     @default(STUDENT)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  institution Institution @relation(fields: [institutionId], references: [id])
+  student     Student?
+  teacher     Teacher?
+
+  @@unique([institutionId, email])
+  @@index([institutionId])
+  @@map("users")
+}
+
+// ==================== ALUNO ====================
+
+model Student {
+  id            Int           @id @default(autoincrement())
+  institutionId Int
+  userId        Int?          @unique
+  name          String        @db.VarChar(200)
+  enrollment    String        @db.VarChar(50)
+  birthDate     DateTime?     @db.Date
+  classId       Int?
+  shift         String?       @db.VarChar(20)
+  status        StudentStatus @default(ACTIVE)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  institution  Institution          @relation(fields: [institutionId], references: [id])
+  user         User?                @relation(fields: [userId], references: [id])
+  class        Class?               @relation(fields: [classId], references: [id])
+  grades       Grade[]
+  attendances  Attendance[]
+  observations StudentObservation[]
+
+  @@unique([institutionId, enrollment])
+  @@index([institutionId])
+  @@index([classId])
+  @@map("students")
+}
+
+// ==================== PROFESSOR ====================
+
+model Teacher {
+  id             Int      @id @default(autoincrement())
+  institutionId  Int
+  userId         Int?     @unique
+  name           String   @db.VarChar(200)
+  identification String?  @db.VarChar(50)
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  institution          Institution           @relation(fields: [institutionId], references: [id])
+  user                 User?                 @relation(fields: [userId], references: [id])
+  teacherClassSubjects TeacherClassSubject[]
+  lessons              Lesson[]
+  studentObservations  StudentObservation[]
+
+  @@index([institutionId])
+  @@map("teachers")
+}
+
+// ==================== TURMA ====================
+
+model Class {
+  id            Int      @id @default(autoincrement())
+  institutionId Int
+  name          String   @db.VarChar(100)
+  grade         String   @db.VarChar(50)
+  shift         String   @db.VarChar(20)
+  schoolYear    Int
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  institution          Institution           @relation(fields: [institutionId], references: [id])
+  students             Student[]
+  teacherClassSubjects TeacherClassSubject[]
+  assessments          Assessment[]
+  attendances          Attendance[]
+  lessons              Lesson[]
+
+  @@index([institutionId, schoolYear])
+  @@index([institutionId])
+  @@map("classes")
+}
+
+// ==================== DISCIPLINA ====================
+
+model Subject {
+  id            Int      @id @default(autoincrement())
+  institutionId Int
+  name          String   @db.VarChar(100)
+  grade         String?  @db.VarChar(50)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  institution          Institution           @relation(fields: [institutionId], references: [id])
+  teacherClassSubjects TeacherClassSubject[]
+  assessments          Assessment[]
+  attendances          Attendance[]
+  lessons              Lesson[]
+
+  @@index([institutionId])
+  @@map("subjects")
+}
+
+// ==================== VÍNCULO PROFESSOR-TURMA-DISCIPLINA ====================
+
+model TeacherClassSubject {
+  id            Int      @id @default(autoincrement())
+  institutionId Int
+  teacherId     Int
+  classId       Int
+  subjectId     Int
+  createdAt     DateTime @default(now())
+
+  institution Institution @relation(fields: [institutionId], references: [id])
+  teacher     Teacher     @relation(fields: [teacherId], references: [id])
+  class       Class       @relation(fields: [classId], references: [id])
+  subject     Subject     @relation(fields: [subjectId], references: [id])
+
+  @@unique([institutionId, teacherId, classId, subjectId])
+  @@index([institutionId, teacherId])
+  @@index([institutionId, classId])
+  @@map("teacher_class_subjects")
+}
+
+// ==================== CONFIGURAÇÃO ACADÊMICA E PERÍODOS ====================
+
+model AcademicSetting {
+  id              Int      @id @default(autoincrement())
+  institutionId   Int
+  schoolYear      Int
+  bimestersCount  Int      @default(4)
+  pointsPerPeriod Decimal  @default(25) @db.Decimal(5, 2)
+  minAverage      Decimal  @default(6) @db.Decimal(5, 2)
+  minAttendance   Int      @default(75) // %
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  institution Institution @relation(fields: [institutionId], references: [id])
+
+  @@unique([institutionId, schoolYear])
+  @@map("academic_settings")
+}
+
+model AcademicPeriod {
+  id            Int       @id @default(autoincrement())
+  institutionId Int
+  schoolYear    Int
+  name          String    @db.VarChar(100) // 1º Bimestre, etc.
+  number        Int       // 1, 2, 3, 4
+  startDate     DateTime  @db.Date
+  endDate       DateTime  @db.Date
+  isClosed      Boolean   @default(false)
+  closedAt      DateTime?
+  closedBy      Int?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  institution Institution  @relation(fields: [institutionId], references: [id])
+  assessments Assessment[]
+  lessons     Lesson[]
+
+  @@unique([institutionId, schoolYear, number])
+  @@map("academic_periods")
+}
+
+// ==================== AVALIAÇÃO ====================
+
+model Assessment {
+  id            Int      @id @default(autoincrement())
+  institutionId Int
+  name          String   @db.VarChar(200)
+  description   String?  @db.Text
+  periodId      Int
+  classId       Int
+  subjectId     Int
+  teacherId     Int
+  date          DateTime @db.Date
+  maxGrade      Decimal  @default(10) @db.Decimal(5, 2)
+  isRecovery    Boolean  @default(false) // Indica se é recuperação paralela ou final
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  institution Institution    @relation(fields: [institutionId], references: [id])
+  period      AcademicPeriod @relation(fields: [periodId], references: [id])
+  class       Class          @relation(fields: [classId], references: [id])
+  subject     Subject        @relation(fields: [subjectId], references: [id])
+  grades      Grade[]
+
+  @@index([institutionId, classId, subjectId])
+  @@index([periodId])
+  @@map("assessments")
+}
+
+// ==================== NOTA ====================
+
+model Grade {
+  id            Int         @id @default(autoincrement())
+  institutionId Int
+  studentId     Int
+  assessmentId  Int
+  teacherId     Int
+  value         Decimal?    @db.Decimal(5, 2)
+  recoveryGrade Decimal?    @db.Decimal(5, 2) // Recuperação paralela da nota
+  status        GradeStatus @default(GRADED)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  institution Institution @relation(fields: [institutionId], references: [id])
+  student     Student     @relation(fields: [studentId], references: [id])
+  assessment  Assessment  @relation(fields: [assessmentId], references: [id])
+
+  @@unique([institutionId, studentId, assessmentId])
+  @@index([institutionId, studentId])
+  @@index([assessmentId])
+  @@map("grades")
+}
+
+// ==================== AULA ====================
+
+model Lesson {
+  id            Int      @id @default(autoincrement())
+  institutionId Int
+  teacherId     Int
+  classId       Int
+  subjectId     Int
+  periodId      Int
+  date          DateTime @db.Date
+  title         String?  @db.VarChar(300) // Opcional para esqueleto de chamada
+  description   String?  @db.Text
+  notes         String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  institution Institution    @relation(fields: [institutionId], references: [id])
+  teacher     Teacher        @relation(fields: [teacherId], references: [id])
+  class       Class          @relation(fields: [classId], references: [id])
+  subject     Subject        @relation(fields: [subjectId], references: [id])
+  period      AcademicPeriod @relation(fields: [periodId], references: [id])
+  attendances Attendance[]
+
+  @@index([institutionId, classId, subjectId])
+  @@index([periodId])
+  @@index([date])
+  @@map("lessons")
+}
+
+// ==================== FREQUÊNCIA ====================
+
+model Attendance {
+  id            Int              @id @default(autoincrement())
+  institutionId Int
+  studentId     Int
+  lessonId      Int
+  classId       Int
+  subjectId     Int
+  teacherId     Int
+  status        AttendanceStatus @default(PRESENT)
+  justification String?          @db.VarChar(300)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  institution Institution @relation(fields: [institutionId], references: [id])
+  student     Student     @relation(fields: [studentId], references: [id])
+  lesson      Lesson      @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  class       Class       @relation(fields: [classId], references: [id])
+  subject     Subject     @relation(fields: [subjectId], references: [id])
+
+  @@unique([institutionId, studentId, lessonId])
+  @@index([institutionId, studentId])
+  @@index([lessonId])
+  @@map("attendances")
+}
+
+// ==================== OBSERVAÇÃO DO ALUNO ====================
+
+model StudentObservation {
+  id            Int      @id @default(autoincrement())
+  institutionId Int
+  studentId     Int
+  teacherId     Int
+  content       String   @db.Text
+  date          DateTime @db.Date
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  institution Institution @relation(fields: [institutionId], references: [id])
+  student     Student     @relation(fields: [studentId], references: [id])
+  teacher     Teacher     @relation(fields: [teacherId], references: [id])
+
+  @@index([institutionId, studentId])
+  @@index([institutionId])
+  @@map("student_observations")
+}

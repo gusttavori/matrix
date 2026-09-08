@@ -1,0 +1,145 @@
+/* ==========================================
+   EDUCAÇÃO MATRIX — Design System Variables
+   ========================================== */
+
+:root {
+  /* ---- Cores Primárias (Verde Matrix Oficial: #00b38f) ---- */
+  --primary-50: #e5faf5;
+  --primary-100: #bdf3e5;
+  --primary-200: #8eeadb;
+  --primary-300: #5ce2cf;
+  --primary-400: #2fd9c3;
+  --primary-500: #00b38f; /* Verde exato da marca */
+  --primary-600: #009376;
+  --primary-700: #00755e;
+  --primary-800: #005a48;
+  --primary-900: #003e32;
+
+  /* ---- Cores Accent ---- */
+  --accent-50: #e6fffa;
+  --accent-100: #b2f5ea;
+  --accent-200: #81e6d9;
+  --accent-300: #4fd1c5;
+  --accent-400: #38b2ac;
+  --accent-500: #2c9a8f;
+  --accent-600: #237a72;
+
+  /* ---- Cores de Sucesso ---- */
+  --success-50: #f0fdf4;
+  --success-100: #dcfce7;
+  --success-400: #4ade80;
+  --success-500: #22c55e;
+  --success-600: #16a34a;
+  --success-700: #15803d;
+
+  /* ---- Cores de Aviso ---- */
+  --warning-50: #fffbeb;
+  --warning-100: #fef3c7;
+  --warning-400: #fbbf24;
+  --warning-500: #f59e0b;
+  --warning-600: #d97706;
+  --warning-700: #b45309;
+
+  /* ---- Cores de Erro ---- */
+  --danger-50: #fef2f2;
+  --danger-100: #fee2e2;
+  --danger-400: #f87171;
+  --danger-500: #ef4444;
+  --danger-600: #dc2626;
+  --danger-700: #b91c1c;
+
+  /* ---- Neutras ---- */
+  --gray-50: #f8fafc;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-300: #cbd5e1;
+  --gray-400: #94a3b8;
+  --gray-500: #64748b;
+  --gray-600: #475569;
+  --gray-700: #334155;
+  --gray-800: #1e293b;
+  --gray-900: #0f172a;
+
+  /* ---- Superfícies ---- */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  --bg-sidebar: #0f172a;
+  --bg-sidebar-hover: #1e293b;
+  --bg-sidebar-active: var(--primary-500);
+
+  /* ---- Texto ---- */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #94a3b8;
+  --text-inverse: #ffffff;
+  --text-link: var(--primary-600);
+
+  /* ---- Bordas ---- */
+  --border-light: #e2e8f0;
+  --border-medium: #cbd5e1;
+  --border-focus: var(--primary-400);
+
+  /* ---- Tipografia ---- */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+  --font-size-5xl: 3rem;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* ---- Espaçamento e Acessibilidade ---- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+  --touch-target: 48px; /* Regra de ouro para mobile */
+
+  /* ---- Bordas ---- */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
+
+  /* ---- Sombras ---- */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+
+  /* ---- Transições ---- */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow: 350ms ease;
+
+  /* ---- Z-index ---- */
+  --z-dropdown: 100;
+  --z-sidebar: 200;
+  --z-modal-backdrop: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+
+  /* ---- Layout ---- */
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 70px;
+  --header-height: 64px;
+  --max-content-width: 1280px;
+}

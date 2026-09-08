@@ -1,0 +1,12 @@
+const express = require('express');
+const router = express.Router();
+const { getMetrics } = require('../controllers/superAdminController');
+const { authMiddleware } = require('../middlewares/authMiddleware'); 
+
+// Todas as rotas aqui precisam de autenticação
+router.use(authMiddleware);
+
+router.get('/metrics', getMetrics);
+
+// AQUI ESTÁ A CORREÇÃO: Deve ser exportado diretamente, sem chaves {}
+module.exports = router;

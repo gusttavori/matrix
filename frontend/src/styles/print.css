@@ -1,0 +1,76 @@
+/* ==========================================
+   EDUCAÇÃO MATRIX — Print Styles
+   ========================================== */
+
+@media print {
+  body {
+    background-color: #fff !important;
+    color: #000 !important;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+
+  .print-only-flex {
+    display: flex !important;
+  }
+  
+  .print-container {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Oculta menus laterais e topo ao imprimir */
+  .app-layout__sidebar, 
+  .app-layout__header,
+  .sidebar, 
+  .header {
+    display: none !important;
+  }
+
+  /* Remove margens e preenchimentos da tela */
+  .app-layout__main,
+  .app-layout__content,
+  .main-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Limpa o visual do Card para o papel */
+  .card {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+
+  .table {
+    border: 1px solid #000;
+  }
+
+  .table th, .table td {
+    border: 1px solid #000;
+    color: #000 !important;
+  }
+
+  .badge {
+    background: transparent !important;
+    color: #000 !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+}
+
+/* Ocultar elementos de impressão na tela (Mobile e Desktop) */
+@media screen {
+  .print-only,
+  .print-only-flex {
+    display: none !important;
+  }
+}
