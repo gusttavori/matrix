@@ -8,6 +8,9 @@ const { errorHandler } = require('./middlewares/errorHandler');
 
 const app = express();
 
+// AVISO PARA O RENDER: Confia no proxy para o express-rate-limit funcionar sem erros
+app.set('trust proxy', 1);
+
 // 1. CORS
 const allowedOrigins = process.env.NODE_ENV === 'production'
   ? ['https://educacaomatrix.vercel.app', 'https://educacaomatrix.com.br']
@@ -43,7 +46,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // ==========================================
-// IMPORTAÇÃO DE ROTAS (Apenas Módulos Ativos)
+// IMPORTAÇÃO DE ROTAS (Módulos Ativos)
 // ==========================================
 const authRoutes = require('./routes/authRoutes');
 const planRoutes = require('./routes/planRoutes');
@@ -55,11 +58,17 @@ const subjectRoutes = require('./routes/subjectRoutes');
 const superAdminRoutes = require('./routes/superAdminRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 
-// Rotas Reativadas:
 const linkRoutes = require('./routes/linkRoutes');
 const teacherPanelRoutes = require('./routes/teacherPanelRoutes');
 
-// Aplicação das Rotas Ativas
+// Rotas da Caderneta (AGORA ATIVAS)
+const attendanceRoutes = require('./routes/attendanceRoutes');
+const assessmentRoutes = require('./routes/assessmentRoutes');
+const lessonRoutes = require('./routes/lessonRoutes');
+
+// ==========================================
+// APLICAÇÃO DAS ROTAS
+// ==========================================
 app.use('/api/super-admin', superAdminRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/plans', planRoutes);
@@ -70,23 +79,18 @@ app.use('/api/classes', classRoutes);
 app.use('/api/subjects', subjectRoutes);
 app.use('/api/reports', reportRoutes);
 
-// Aplicação das Rotas Reativadas:
 app.use('/api/links', linkRoutes);
 app.use('/api/teacher-panel', teacherPanelRoutes);
+
+// Aplicação das Rotas da Caderneta
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/assessments', assessmentRoutes);
+app.use('/api/lessons', lessonRoutes);
 
 // ==========================================
 // MÓDULOS FUTUROS (Comentados para não quebrar a API)
 // ==========================================
 /*
-const attendanceRoutes = require('./routes/attendanceRoutes');
-app.use('/api/attendance', attendanceRoutes);
-
-const assessmentRoutes = require('./routes/assessmentRoutes');
-app.use('/api/assessments', assessmentRoutes);
-
-const lessonRoutes = require('./routes/lessonRoutes');
-app.use('/api/lessons', lessonRoutes);
-
 const closingRoutes = require('./routes/closingRoutes');
 app.use('/api/closing', closingRoutes);
 
