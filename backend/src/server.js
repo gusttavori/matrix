@@ -55,20 +55,9 @@ const subjectRoutes = require('./routes/subjectRoutes');
 const superAdminRoutes = require('./routes/superAdminRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 
-// ==========================================
-// DIAGNÓSTICO DE ROTAS
-// ==========================================
-console.log('\n--- DIAGNÓSTICO DE ROTAS ---');
-console.log('1. authRoutes:', typeof authRoutes);
-console.log('2. planRoutes:', typeof planRoutes);
-console.log('3. institutionRoutes:', typeof institutionRoutes);
-console.log('4. studentRoutes:', typeof studentRoutes);
-console.log('5. teacherRoutes:', typeof teacherRoutes);
-console.log('6. classRoutes:', typeof classRoutes);
-console.log('7. subjectRoutes:', typeof subjectRoutes);
-console.log('8. superAdminRoutes:', typeof superAdminRoutes);
-console.log('9. reportRoutes:', typeof reportRoutes);
-console.log('----------------------------\n');
+// Rotas Reativadas:
+const linkRoutes = require('./routes/linkRoutes');
+const teacherPanelRoutes = require('./routes/teacherPanelRoutes');
 
 // Aplicação das Rotas Ativas
 app.use('/api/super-admin', superAdminRoutes);
@@ -81,16 +70,14 @@ app.use('/api/classes', classRoutes);
 app.use('/api/subjects', subjectRoutes);
 app.use('/api/reports', reportRoutes);
 
+// Aplicação das Rotas Reativadas:
+app.use('/api/links', linkRoutes);
+app.use('/api/teacher-panel', teacherPanelRoutes);
+
 // ==========================================
 // MÓDULOS FUTUROS (Comentados para não quebrar a API)
 // ==========================================
 /*
-const linkRoutes = require('./routes/linkRoutes');
-app.use('/api/links', linkRoutes);
-
-const teacherPanelRoutes = require('./routes/teacherPanelRoutes');
-app.use('/api/teacher-panel', teacherPanelRoutes);
-
 const attendanceRoutes = require('./routes/attendanceRoutes');
 app.use('/api/attendance', attendanceRoutes);
 
