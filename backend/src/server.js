@@ -57,14 +57,15 @@ const classRoutes = require('./routes/classRoutes');
 const subjectRoutes = require('./routes/subjectRoutes');
 const superAdminRoutes = require('./routes/superAdminRoutes');
 const reportRoutes = require('./routes/reportRoutes');
-
 const linkRoutes = require('./routes/linkRoutes');
 const teacherPanelRoutes = require('./routes/teacherPanelRoutes');
-
-// Rotas da Caderneta (AGORA ATIVAS)
 const attendanceRoutes = require('./routes/attendanceRoutes');
 const assessmentRoutes = require('./routes/assessmentRoutes');
 const lessonRoutes = require('./routes/lessonRoutes');
+
+// Rotas de Fechamento e Relatórios (AGORA ATIVAS)
+const closingRoutes = require('./routes/closingRoutes');
+const teacherReportRoutes = require('./routes/teacherReportRoutes');
 
 // ==========================================
 // APLICAÇÃO DAS ROTAS
@@ -78,25 +79,20 @@ app.use('/api/teachers', teacherRoutes);
 app.use('/api/classes', classRoutes);
 app.use('/api/subjects', subjectRoutes);
 app.use('/api/reports', reportRoutes);
-
 app.use('/api/links', linkRoutes);
 app.use('/api/teacher-panel', teacherPanelRoutes);
-
-// Aplicação das Rotas da Caderneta
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/assessments', assessmentRoutes);
 app.use('/api/lessons', lessonRoutes);
+
+// Aplicação de Fechamento e Relatórios
+app.use('/api/closing', closingRoutes);
+app.use('/api/teacher-reports', teacherReportRoutes);
 
 // ==========================================
 // MÓDULOS FUTUROS (Comentados para não quebrar a API)
 // ==========================================
 /*
-const closingRoutes = require('./routes/closingRoutes');
-app.use('/api/closing', closingRoutes);
-
-const teacherReportRoutes = require('./routes/teacherReportRoutes');
-app.use('/api/teacher-reports', teacherReportRoutes);
-
 const studentPanelRoutes = require('./routes/studentPanelRoutes');
 app.use('/api/student-panel', studentPanelRoutes);
 */
