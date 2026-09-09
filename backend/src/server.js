@@ -46,7 +46,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // ==========================================
-// IMPORTAÇÃO DE ROTAS (Módulos Ativos)
+// IMPORTAÇÃO DE ROTAS (100% ATIVAS)
 // ==========================================
 const authRoutes = require('./routes/authRoutes');
 const planRoutes = require('./routes/planRoutes');
@@ -62,10 +62,9 @@ const teacherPanelRoutes = require('./routes/teacherPanelRoutes');
 const attendanceRoutes = require('./routes/attendanceRoutes');
 const assessmentRoutes = require('./routes/assessmentRoutes');
 const lessonRoutes = require('./routes/lessonRoutes');
-
-// Rotas de Fechamento e Relatórios (AGORA ATIVAS)
 const closingRoutes = require('./routes/closingRoutes');
 const teacherReportRoutes = require('./routes/teacherReportRoutes');
+const studentPanelRoutes = require('./routes/studentPanelRoutes'); // Painel do Aluno importado
 
 // ==========================================
 // APLICAÇÃO DAS ROTAS
@@ -84,18 +83,9 @@ app.use('/api/teacher-panel', teacherPanelRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/assessments', assessmentRoutes);
 app.use('/api/lessons', lessonRoutes);
-
-// Aplicação de Fechamento e Relatórios
 app.use('/api/closing', closingRoutes);
 app.use('/api/teacher-reports', teacherReportRoutes);
-
-// ==========================================
-// MÓDULOS FUTUROS (Comentados para não quebrar a API)
-// ==========================================
-/*
-const studentPanelRoutes = require('./routes/studentPanelRoutes');
-app.use('/api/student-panel', studentPanelRoutes);
-*/
+app.use('/api/student-panel', studentPanelRoutes); // Painel do Aluno ativado
 
 // Middleware de erro global
 app.use(errorHandler);
