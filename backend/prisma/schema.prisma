@@ -14,6 +14,7 @@ enum Role {
   SECRETARY
   TEACHER
   STUDENT
+  NETWORK_ADMIN // Novo Perfil (Secretaria de Educação)
 }
 
 enum SubscriptionStatus {
@@ -41,7 +42,7 @@ enum StudentStatus {
   TRANSFERRED
 }
 
-// ==================== PLATAFORMA ====================
+// ==================== PLATAFORMA E REDE ====================
 
 model Plan {
   id           Int      @id @default(autoincrement())
@@ -60,10 +61,28 @@ model Plan {
   @@map("plans")
 }
 
+// Nova Tabela: Secretaria de Educação / Prefeituras
+model Network {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(200)
+  document  String?  @db.VarChar(20)
+  city      String?  @db.VarChar(100)
+  state     String?  @db.VarChar(2)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  institutions Institution[]
+  users        User[]
+
+  @@map("networks")
+}
+
 // ==================== INSTITUIÇÃO ====================
 
 model Institution {
   id        Int      @id @default(autoincrement())
+  networkId Int?     // Vínculo com a Secretaria de Educação (Opcional)
   name      String   @db.VarChar(200)
   tradeName String?  @db.VarChar(200)
   document  String?  @db.VarChar(20)
@@ -77,6 +96,7 @@ model Institution {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  network              Network?             @relation(fields: [networkId], references: [id])
   users                User[]
   students             Student[]
   teachers             Teacher[]
@@ -92,6 +112,7 @@ model Institution {
   studentObservations  StudentObservation[]
   subscriptions        Subscription[]
 
+  @@index([networkId])
   @@map("institutions")
 }
 
@@ -117,22 +138,26 @@ model Subscription {
 // ==================== USUÁRIOS ====================
 
 model User {
-  id            Int      @id @default(autoincrement())
-  institutionId Int
-  name          String   @db.VarChar(200)
-  email         String   @db.VarChar(200)
-  password      String   @db.VarChar(200)
-  role          Role     @default(STUDENT)
-  active        Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                  Int      @id @default(autoincrement())
+  institutionId       Int?     // Opcional para acomodar usuários da Rede/Prefeitura
+  networkId           Int?     // ID da Secretaria de Educação (se for NETWORK_ADMIN)
+  name                String   @db.VarChar(200)
+  email               String   @unique @db.VarChar(200)
+  password            String   @db.VarChar(200)
+  role                Role     @default(STUDENT)
+  permissions         Json?    // Controle de acesso granular da Secretaria
+  forcePasswordChange Boolean  @default(true) // Força troca no primeiro login
+  active              Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
-  institution Institution @relation(fields: [institutionId], references: [id])
+  institution Institution? @relation(fields: [institutionId], references: [id])
+  network     Network?     @relation(fields: [networkId], references: [id])
   student     Student?
   teacher     Teacher?
 
-  @@unique([institutionId, email])
   @@index([institutionId])
+  @@index([networkId])
   @@map("users")
 }
 
@@ -286,9 +311,9 @@ model AcademicPeriod {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  institution Institution  @relation(fields: [institutionId], references: [id])
-  assessments Assessment[]
-  lessons     Lesson[]
+  institution  Institution  @relation(fields: [institutionId], references: [id])
+  assessments  Assessment[]
+  lessons      Lesson[]
 
   @@unique([institutionId, schoolYear, number])
   @@map("academic_periods")
@@ -307,7 +332,7 @@ model Assessment {
   teacherId     Int
   date          DateTime @db.Date
   maxGrade      Decimal  @default(10) @db.Decimal(5, 2)
-  isRecovery    Boolean  @default(false) // Indica se é recuperação paralela ou final
+  isRecovery    Boolean  @default(false) // Indica se é recuperação
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -331,8 +356,9 @@ model Grade {
   assessmentId  Int
   teacherId     Int
   value         Decimal?    @db.Decimal(5, 2)
-  recoveryGrade Decimal?    @db.Decimal(5, 2) // Recuperação paralela da nota
+  recoveryGrade Decimal?    @db.Decimal(5, 2) // Recuperação paralela
   status        GradeStatus @default(GRADED)
+  observation   String?     @db.Text // Novo campo para o professor justificar a nota
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
@@ -356,7 +382,7 @@ model Lesson {
   subjectId     Int
   periodId      Int
   date          DateTime @db.Date
-  title         String?  @db.VarChar(300) // Opcional para esqueleto de chamada
+  title         String?  @db.VarChar(300)
   description   String?  @db.Text
   notes         String?  @db.Text
   createdAt     DateTime @default(now())
@@ -387,6 +413,7 @@ model Attendance {
   teacherId     Int
   status        AttendanceStatus @default(PRESENT)
   justification String?          @db.VarChar(300)
+  observation   String?          @db.Text // Novo campo para contexto extra
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 

@@ -19,6 +19,18 @@ router.get('/', async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+// Nova Rota: Cadastro em Lote (Ignora o schema Zod antigo para aceitar Array)
+router.post('/bulk', async (req, res, next) => {
+  try {
+    const { name, grades } = req.body;
+    if (!name || !grades || !Array.isArray(grades)) {
+      return res.status(400).json({ success: false, message: 'Dados inválidos para cadastro em massa.' });
+    }
+    const data = await subjectController.createBulk(req.institutionId, { name, grades });
+    return successResponse(res, data, 'Disciplinas criadas com sucesso', 201);
+  } catch (error) { next(error); }
+});
+
 router.post('/', async (req, res, next) => {
   try {
     const validated = createSubjectSchema.parse(req.body);

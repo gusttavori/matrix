@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import ProtectedRoute from './ProtectedRoute';
 
+import FirstAccess from './pages/FirstAccess';
+
 // Layouts
 import PublicLayout from '../layouts/PublicLayout';
 import AdminLayout from '../layouts/AdminLayout';
@@ -76,6 +78,7 @@ export default function AppRoutes() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/cadastro" element={<RegisterPage />} />
           <Route path="/planos" element={<PlansPage />} />
+          <Route path="/primeiro-acesso" element={<FirstAccess />} />
         </Route>
 
         <Route

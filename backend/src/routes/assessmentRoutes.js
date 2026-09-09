@@ -28,7 +28,6 @@ const getAuthData = (req) => {
   };
 };
 
-// Get assessments for a class/subject
 router.get('/class/:classId/subject/:subjectId', async (req, res, next) => {
   try {
     const { userId, institutionId } = getAuthData(req);
@@ -60,7 +59,6 @@ router.get('/class/:classId/subject/:subjectId', async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
-// Create assessment
 router.post('/assessment', async (req, res, next) => {
   try {
     const { userId, institutionId } = getAuthData(req);
@@ -92,7 +90,6 @@ router.post('/assessment', async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
-// Update/Save Grades for an assessment
 router.post('/grades', async (req, res, next) => {
   try {
     const { userId, institutionId } = getAuthData(req);
@@ -122,9 +119,10 @@ router.post('/grades', async (req, res, next) => {
         studentId: parseInt(g.studentId, 10),
         assessmentId: parseInt(assessmentId, 10),
         teacherId: teacher.id,
-        value: parseFloat(g.value),
-        recoveryGrade: g.recoveryGrade ? parseFloat(g.recoveryGrade) : null,
-        status: g.status || 'GRADED'
+        value: g.value !== null && g.value !== undefined ? parseFloat(g.value) : null,
+        recoveryGrade: g.recoveryGrade !== null && g.recoveryGrade !== undefined ? parseFloat(g.recoveryGrade) : null,
+        status: g.status || 'GRADED',
+        observation: g.observation || null // Novo campo
       }));
 
       if (toInsert.length > 0) {

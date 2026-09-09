@@ -4,7 +4,7 @@ import { useToast } from '../../../hooks/useToast';
 import Card from '../../../components/Card';
 import Button from '../../../components/Button';
 import Input from '../../../components/Input';
-import { Save, AlertCircle } from 'lucide-react';
+import { Save, AlertCircle, MessageSquare } from 'lucide-react';
 import Loading from '../../../components/Loading';
 
 export default function GradeTab({ classId, subjectId, students, periodId }) {
@@ -20,9 +20,7 @@ export default function GradeTab({ classId, subjectId, students, periodId }) {
   const [grades, setGrades] = useState({});
 
   useEffect(() => {
-    if (periodId) {
-      loadAssessments();
-    }
+    if (periodId) loadAssessments();
   }, [periodId]);
 
   const loadAssessments = async () => {
@@ -64,7 +62,7 @@ export default function GradeTab({ classId, subjectId, students, periodId }) {
     const gMap = {};
     
     students.forEach(s => {
-      gMap[s.id] = { value: '', recoveryGrade: '', status: 'GRADED' };
+      gMap[s.id] = { value: '', recoveryGrade: '', status: 'GRADED', observation: '' };
     });
 
     if (assessment.grades) {
@@ -72,7 +70,8 @@ export default function GradeTab({ classId, subjectId, students, periodId }) {
         gMap[g.studentId] = {
           value: g.value !== null ? g.value : '',
           recoveryGrade: g.recoveryGrade !== null ? g.recoveryGrade : '',
-          status: g.status
+          status: g.status,
+          observation: g.observation || ''
         };
       });
     }
@@ -91,9 +90,10 @@ export default function GradeTab({ classId, subjectId, students, periodId }) {
             studentId: parseInt(id),
             value: g.value === '' ? null : parseFloat(g.value),
             recoveryGrade: g.recoveryGrade === '' ? null : parseFloat(g.recoveryGrade),
-            status: g.status
+            status: g.status,
+            observation: g.observation || null
           };
-        }).filter(g => g.value !== null || g.status === 'NOT_TAKEN' || g.recoveryGrade !== null)
+        }).filter(g => g.value !== null || g.status === 'NOT_TAKEN' || g.recoveryGrade !== null || g.observation)
       };
 
       await api.post('/api/assessments/grades', payload);
@@ -107,10 +107,7 @@ export default function GradeTab({ classId, subjectId, students, periodId }) {
   const updateGrade = (studentId, field, val) => {
     setGrades(prev => ({
       ...prev,
-      [studentId]: {
-        ...prev[studentId],
-        [field]: val
-      }
+      [studentId]: { ...prev[studentId], [field]: val }
     }));
   };
 
@@ -142,41 +139,14 @@ export default function GradeTab({ classId, subjectId, students, periodId }) {
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
       <Card title="Nova Avaliação">
         <form onSubmit={handleCreateAssessment} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <Input 
-            label="Título da Avaliação" 
-            value={newAssessment.name} 
-            onChange={e => setNewAssessment({...newAssessment, name: e.target.value})} 
-            required 
-            placeholder="Ex: Prova Escrita"
-          />
-          <Input 
-            label="Data de Realização" 
-            type="date" 
-            value={newAssessment.date} 
-            onChange={e => setNewAssessment({...newAssessment, date: e.target.value})} 
-            required 
-          />
-          <Input 
-            label="Nota Máxima (Valor)" 
-            type="number" 
-            step="0.1" 
-            min="0"
-            value={newAssessment.maxGrade} 
-            onChange={e => setNewAssessment({...newAssessment, maxGrade: e.target.value})} 
-            required 
-          />
+          <Input label="Título da Avaliação" value={newAssessment.name} onChange={e => setNewAssessment({...newAssessment, name: e.target.value})} required placeholder="Ex: Prova Escrita" />
+          <Input label="Data de Realização" type="date" value={newAssessment.date} onChange={e => setNewAssessment({...newAssessment, date: e.target.value})} required />
+          <Input label="Nota Máxima (Valor)" type="number" step="0.1" min="0" value={newAssessment.maxGrade} onChange={e => setNewAssessment({...newAssessment, maxGrade: e.target.value})} required />
           
           <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
-            <input 
-              type="checkbox" 
-              id="isRecovery" 
-              checked={newAssessment.isRecovery}
-              onChange={e => setNewAssessment({...newAssessment, isRecovery: e.target.checked})}
-              style={{ width: '1rem', height: '1rem', cursor: 'pointer' }}
-            />
+            <input type="checkbox" id="isRecovery" checked={newAssessment.isRecovery} onChange={e => setNewAssessment({...newAssessment, isRecovery: e.target.checked})} style={{ cursor: 'pointer' }} />
             <label htmlFor="isRecovery" style={{ cursor: 'pointer', margin: 0, fontWeight: '500' }}>Esta é uma prova de recuperação</label>
           </div>
-
           <Button type="submit" style={{ marginTop: '1rem' }}>Criar Avaliação</Button>
         </form>
       </Card>
@@ -195,11 +165,8 @@ export default function GradeTab({ classId, subjectId, students, periodId }) {
                   onChange={(e) => {
                     const id = e.target.value ? parseInt(e.target.value) : null;
                     const assessment = assessments.find(a => a.id === id);
-                    if (assessment) {
-                      selectAssessment(assessment);
-                    } else {
-                      setSelectedAssessmentId(null);
-                    }
+                    if (assessment) selectAssessment(assessment);
+                    else setSelectedAssessmentId(null);
                   }}
                 >
                   <option value="">-- Selecione uma Avaliação --</option>
@@ -215,21 +182,21 @@ export default function GradeTab({ classId, subjectId, students, periodId }) {
 
             {selectedAssessmentId && (
               <>
-                {/* Scroll Exclusivo da Tabela para não quebrar a tela */}
                 <div className="table-scroll" style={{ display: 'block', width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '0.5rem' }}>
-                  <table className="table" style={{ width: '100%', minWidth: '700px' }}>
+                  <table className="table" style={{ width: '100%', minWidth: '850px' }}>
                     <thead>
                       <tr>
                         <th style={{ width: '5%' }}>Nº</th>
-                        <th>Aluno</th>
-                        <th style={{ width: '20%' }}>Status</th>
-                        <th style={{ width: '15%' }}>Nota Obtida</th>
-                        {!currentAssessment?.isRecovery && <th style={{ width: '15%' }}>Rec. Paralela</th>}
+                        <th style={{ width: '25%' }}>Aluno</th>
+                        <th style={{ width: '15%' }}>Status</th>
+                        <th style={{ width: '15%' }}>Nota</th>
+                        {!currentAssessment?.isRecovery && <th style={{ width: '15%' }}>Recup.</th>}
+                        <th style={{ width: '25%' }}>Observação</th>
                       </tr>
                     </thead>
                     <tbody>
                       {students.map((student, idx) => {
-                        const g = grades[student.id] || { value: '', recoveryGrade: '', status: 'GRADED' };
+                        const g = grades[student.id] || { value: '', recoveryGrade: '', status: 'GRADED', observation: '' };
                         const notTaken = g.status === 'NOT_TAKEN';
                         
                         return (
@@ -257,46 +224,31 @@ export default function GradeTab({ classId, subjectId, students, periodId }) {
                             <td>
                               <input 
                                 id={`grade-value-${idx}`}
-                                type="number" 
-                                step="0.1"
-                                min="0"
-                                max={currentAssessment?.maxGrade}
-                                disabled={notTaken}
-                                className="input"
-                                style={{ 
-                                  padding: '0.25rem 0.5rem', 
-                                  height: 'auto', 
-                                  textAlign: 'center',
-                                  backgroundColor: notTaken ? 'var(--gray-100)' : 'var(--bg-color)',
-                                  borderColor: (g.value !== '' && parseFloat(g.value) < (currentAssessment?.maxGrade * 0.6)) ? 'var(--danger-500)' : 'var(--border-color)'
-                                }}
-                                value={g.value}
-                                onChange={(e) => updateGrade(student.id, 'value', e.target.value)}
-                                onKeyDown={(e) => handleKeyDown(e, student.id, 'value', idx)}
+                                type="number" step="0.1" min="0" max={currentAssessment?.maxGrade} disabled={notTaken} className="input"
+                                style={{ padding: '0.25rem 0.5rem', height: 'auto', textAlign: 'center', backgroundColor: notTaken ? 'var(--gray-100)' : 'var(--bg-color)', borderColor: (g.value !== '' && parseFloat(g.value) < (currentAssessment?.maxGrade * 0.6)) ? 'var(--danger-500)' : 'var(--border-color)' }}
+                                value={g.value} onChange={(e) => updateGrade(student.id, 'value', e.target.value)} onKeyDown={(e) => handleKeyDown(e, student.id, 'value', idx)}
                               />
                             </td>
                             {!currentAssessment?.isRecovery && (
                               <td>
                                 <input 
                                   id={`grade-rec-${idx}`}
-                                  type="number" 
-                                  step="0.1"
-                                  min="0"
-                                  max={currentAssessment?.maxGrade}
-                                  disabled={notTaken}
-                                  className="input"
-                                  style={{ 
-                                    padding: '0.25rem 0.5rem', 
-                                    height: 'auto', 
-                                    textAlign: 'center',
-                                    backgroundColor: notTaken ? 'var(--gray-100)' : 'var(--bg-color)'
-                                  }}
-                                  value={g.recoveryGrade}
-                                  onChange={(e) => updateGrade(student.id, 'recoveryGrade', e.target.value)}
-                                  onKeyDown={(e) => handleKeyDown(e, student.id, 'rec', idx)}
+                                  type="number" step="0.1" min="0" max={currentAssessment?.maxGrade} disabled={notTaken} className="input"
+                                  style={{ padding: '0.25rem 0.5rem', height: 'auto', textAlign: 'center', backgroundColor: notTaken ? 'var(--gray-100)' : 'var(--bg-color)' }}
+                                  value={g.recoveryGrade} onChange={(e) => updateGrade(student.id, 'recoveryGrade', e.target.value)} onKeyDown={(e) => handleKeyDown(e, student.id, 'rec', idx)}
                                 />
                               </td>
                             )}
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.25rem 0.5rem' }}>
+                                <MessageSquare size={14} color="var(--text-secondary)" />
+                                <input
+                                  type="text" placeholder="Obs..." value={g.observation}
+                                  onChange={(e) => updateGrade(student.id, 'observation', e.target.value)}
+                                  style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: '0.75rem' }}
+                                />
+                              </div>
+                            </td>
                           </tr>
                         );
                       })}

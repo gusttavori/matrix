@@ -14,6 +14,7 @@ import { Plus, Edit2, Trash2 } from 'lucide-react';
 
 export default function SubjectsPage() {
   const [subjects, setSubjects] = useState([]);
+  const [availableGrades, setAvailableGrades] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -24,6 +25,7 @@ export default function SubjectsPage() {
   const [formData, setFormData] = useState({
     name: '',
     grade: '',
+    grades: [], // Array para cadastro em massa
     active: true
   });
 
@@ -34,8 +36,16 @@ export default function SubjectsPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/api/subjects');
-      setSubjects(res.data.data);
+      // Carrega disciplinas e turmas simultaneamente
+      const [subjRes, classesRes] = await Promise.all([
+        api.get('/api/subjects'),
+        api.get('/api/classes')
+      ]);
+      setSubjects(subjRes.data.data);
+      
+      // Extrai uma lista única de Séries/Anos baseada nas turmas existentes
+      const uniqueGrades = [...new Set(classesRes.data.data.map(c => c.grade))].filter(Boolean);
+      setAvailableGrades(uniqueGrades.sort());
     } catch (err) {
       error('Erro ao carregar dados.');
     } finally {
@@ -46,31 +56,38 @@ export default function SubjectsPage() {
   const handleOpenModal = (subj = null) => {
     if (subj) {
       setCurrentSubject(subj);
-      setFormData({
-        name: subj.name,
-        grade: subj.grade,
-        active: subj.active
-      });
+      setFormData({ name: subj.name, grade: subj.grade, grades: [], active: subj.active });
     } else {
       setCurrentSubject(null);
-      setFormData({
-        name: '',
-        grade: '',
-        active: true
-      });
+      setFormData({ name: '', grade: '', grades: [], active: true });
     }
     setModalOpen(true);
+  };
+
+  const handleCheckboxChange = (grade) => {
+    const newGrades = formData.grades.includes(grade)
+      ? formData.grades.filter(g => g !== grade)
+      : [...formData.grades, grade];
+    setFormData({ ...formData, grades: newGrades });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       if (currentSubject) {
+        // Atualiza uma disciplina específica
         await api.put(`/api/subjects/${currentSubject.id}`, formData);
         success('Disciplina atualizada com sucesso.');
       } else {
-        await api.post('/api/subjects', formData);
-        success('Disciplina criada com sucesso.');
+        // Cria disciplinas em massa
+        if (formData.grades.length === 0) {
+          return error('Selecione pelo menos uma série/ano.');
+        }
+        await api.post('/api/subjects/bulk', { 
+          name: formData.name, 
+          grades: formData.grades 
+        });
+        success('Disciplinas vinculadas com sucesso.');
       }
       setModalOpen(false);
       loadData();
@@ -139,20 +156,59 @@ export default function SubjectsPage() {
       <Modal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={currentSubject ? 'Editar Disciplina' : 'Nova Disciplina'}
+        title={currentSubject ? 'Editar Disciplina' : 'Cadastrar Disciplina em Massa'}
       >
-        <form id="subject-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <Input label="Nome da Disciplina" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Ex: Matemática" required />
-          <Input label="Série/Ano" value={formData.grade} onChange={e => setFormData({...formData, grade: e.target.value})} placeholder="Ex: 1º Ano EM" required />
+        <form id="subject-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <Input 
+            label="Nome da Disciplina" 
+            value={formData.name} 
+            onChange={e => setFormData({...formData, name: e.target.value})} 
+            placeholder="Ex: Matemática" 
+            required 
+          />
+          
+          {!currentSubject ? (
+            <div style={{ border: '1px solid #e5e7eb', borderRadius: '6px', padding: '1rem' }}>
+              <p style={{ fontSize: '0.875rem', fontWeight: 'bold', marginBottom: '0.75rem', color: '#374151' }}>
+                Vincular às Séries/Anos:
+              </p>
+              {availableGrades.length > 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', maxHeight: '180px', overflowY: 'auto' }}>
+                  {availableGrades.map(grade => (
+                    <label key={grade} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', cursor: 'pointer' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={formData.grades.includes(grade)}
+                        onChange={() => handleCheckboxChange(grade)}
+                        style={{ cursor: 'pointer' }}
+                      />
+                      {grade}
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                  Nenhuma turma encontrada. Cadastre as turmas primeiro.
+                </p>
+              )}
+            </div>
+          ) : (
+            <Input 
+              label="Série/Ano" 
+              value={formData.grade} 
+              onChange={e => setFormData({...formData, grade: e.target.value})} 
+              required 
+            />
+          )}
           
           {currentSubject && (
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem' }}>
               <input type="checkbox" checked={formData.active} onChange={e => setFormData({...formData, active: e.target.checked})} />
               Disciplina Ativa
             </label>
           )}
         </form>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }}>
           <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancelar</Button>
           <Button type="submit" form="subject-form">Salvar</Button>
         </div>

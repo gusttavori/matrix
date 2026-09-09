@@ -25,7 +25,6 @@ const getAuthData = (req) => {
   };
 };
 
-// GET: Buscar aula e chamada do dia
 router.get('/day/:classId/:subjectId/:periodId', async (req, res, next) => {
   try {
     const { userId, institutionId } = getAuthData(req);
@@ -67,13 +66,11 @@ router.get('/day/:classId/:subjectId/:periodId', async (req, res, next) => {
   }
 });
 
-// POST: Salvar ou atualizar aula e chamada simultaneamente
 router.post('/', async (req, res, next) => {
   try {
     const { userId, institutionId } = getAuthData(req);
     const teacher = await prisma.teacher.findFirst({ where: { userId, institutionId } });
     
-    // Agora extraímos os IDs direto do corpo da requisição (req.body)
     const { classId, subjectId, periodId, date, attendances, title, description } = req.body;
     
     const cId = parseInt(classId, 10);
@@ -113,7 +110,10 @@ router.post('/', async (req, res, next) => {
         if (existingAtt) {
           await tx.attendance.update({
             where: { id: existingAtt.id },
-            data: { status: att.status }
+            data: { 
+              status: att.status,
+              observation: att.observation || null // Novo campo
+            }
           });
         } else {
           await tx.attendance.create({
@@ -121,7 +121,8 @@ router.post('/', async (req, res, next) => {
               institutionId, classId: cId, subjectId: sId, teacherId: teacher.id,
               lessonId: lesson.id,
               studentId: att.studentId,
-              status: att.status
+              status: att.status,
+              observation: att.observation || null // Novo campo
             }
           });
         }

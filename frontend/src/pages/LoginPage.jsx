@@ -25,6 +25,15 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const user = await login(email, password);
+      
+      // MÁGICA DO PRIMEIRO ACESSO AQUI:
+      // Se a API avisar que é obrigatório trocar a senha, bloqueia o redirecionamento normal
+      if (user.forcePasswordChange) {
+        navigate('/primeiro-acesso');
+        return; // Interrompe a execução
+      }
+
+      // Fluxo normal para usuários que já trocaram a senha
       const dashboards = {
         ADMIN: '/admin',
         SECRETARY: '/admin',

@@ -18,11 +18,7 @@ const getById = async (institutionId, id) => {
 
 const create = async (institutionId, data) => {
   const exists = await prisma.subject.findFirst({
-    where: { 
-      institutionId, 
-      name: data.name, 
-      grade: data.grade 
-    }
+    where: { institutionId, name: data.name, grade: data.grade }
   });
 
   if (exists) {
@@ -30,11 +26,32 @@ const create = async (institutionId, data) => {
   }
 
   return await prisma.subject.create({
-    data: {
-      institutionId,
-      ...data
-    }
+    data: { institutionId, ...data }
   });
+};
+
+// Nova Função: Criação em Massa
+const createBulk = async (institutionId, data) => {
+  const { name, grades } = data;
+  
+  if (!grades || grades.length === 0) {
+    throw new AppError('Selecione ao menos uma série.', 400);
+  }
+
+  const existing = await prisma.subject.findMany({
+    where: { institutionId, name, grade: { in: grades } }
+  });
+  
+  const existingGrades = existing.map(e => e.grade);
+  const toCreate = grades
+    .filter(g => !existingGrades.includes(g))
+    .map(g => ({ institutionId, name, grade: g, active: true }));
+
+  if (toCreate.length === 0) {
+    throw new AppError('Esta disciplina já está cadastrada para todas as séries selecionadas.', 400);
+  }
+
+  return await prisma.subject.createMany({ data: toCreate });
 };
 
 const update = async (institutionId, id, data) => {
@@ -43,10 +60,7 @@ const update = async (institutionId, id, data) => {
   if (data.name && data.grade) {
     const exists = await prisma.subject.findFirst({
       where: { 
-        institutionId, 
-        name: data.name, 
-        grade: data.grade,
-        id: { not: parseInt(id) }
+        institutionId, name: data.name, grade: data.grade, id: { not: parseInt(id) }
       }
     });
     if (exists) throw new AppError('Já existe outra disciplina com este nome nesta série', 400);
@@ -75,5 +89,5 @@ const remove = async (institutionId, id) => {
 };
 
 module.exports = {
-  getAll, getById, create, update, remove
+  getAll, getById, create, createBulk, update, remove
 };

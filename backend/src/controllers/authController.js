@@ -14,7 +14,8 @@ const login = async (email, password) => {
             include: { plan: true }
           }
         }
-      }
+      },
+      network: true // Inclui os dados da Prefeitura (se for NETWORK_ADMIN)
     }
   });
 
@@ -27,12 +28,13 @@ const login = async (email, password) => {
     throw new AppError('Credenciais inválidas ou usuário inativo.', 401);
   }
 
-  if (!user.institution.active) {
+  // Verifica se o usuário pertence a uma instituição e se ela está ativa
+  if (user.institution && !user.institution.active) {
     throw new AppError('Instituição inativa. Entre em contato com o suporte.', 403);
   }
 
   const token = generateToken(user);
-  const subscription = user.institution.subscriptions[0];
+  const subscription = user.institution?.subscriptions[0];
 
   return {
     token,
@@ -40,17 +42,24 @@ const login = async (email, password) => {
       id: user.id,
       name: user.name,
       email: user.email,
-      role: user.role
+      role: user.role,
+      forcePasswordChange: user.forcePasswordChange, // Flag de primeira senha
+      permissions: user.permissions // Permissões granulares da secretaria
     },
-    institution: {
+    // Trata como null caso o usuário seja da Prefeitura (NETWORK_ADMIN)
+    institution: user.institution ? {
       id: user.institution.id,
       name: user.institution.name,
       tradeName: user.institution.tradeName,
       logo: user.institution.logo
-    },
+    } : null,
     subscription: subscription ? {
       status: subscription.status,
       plan: subscription.plan.name
+    } : null,
+    network: user.network ? {
+      id: user.network.id,
+      name: user.network.name
     } : null
   };
 };
@@ -61,17 +70,14 @@ const register = async (data) => {
     adminName, email, password, planId 
   } = data;
 
-  // Verifica se o plano existe
   const plan = await prisma.plan.findUnique({ where: { id: planId } });
   if (!plan) throw new AppError('Plano não encontrado.', 404);
 
-  // Verifica se email já existe globalmente (para admin é bom)
   const existingUser = await prisma.user.findFirst({ where: { email } });
   if (existingUser) throw new AppError('E-mail já está em uso.', 409);
 
   const hashedPassword = await hashPassword(password);
 
-  // Transação para criar Instituição, Assinatura e Usuário
   const result = await prisma.$transaction(async (tx) => {
     const institution = await tx.institution.create({
       data: {
@@ -81,7 +87,7 @@ const register = async (data) => {
         phone,
         state,
         city,
-        email // email da escola
+        email 
       }
     });
 
@@ -89,9 +95,9 @@ const register = async (data) => {
       data: {
         institutionId: institution.id,
         planId: plan.id,
-        status: 'TRIAL', // Inicia como trial
+        status: 'TRIAL', 
         startDate: new Date(),
-        endDate: new Date(new Date().setDate(new Date().getDate() + 14)) // 14 dias trial
+        endDate: new Date(new Date().setDate(new Date().getDate() + 14)) 
       },
       include: { plan: true }
     });
@@ -102,7 +108,8 @@ const register = async (data) => {
         name: adminName,
         email,
         password: hashedPassword,
-        role: 'ADMIN'
+        role: 'ADMIN',
+        forcePasswordChange: false // Admin não precisa trocar senha ao registrar
       }
     });
 
@@ -132,7 +139,27 @@ const register = async (data) => {
   };
 };
 
+// Nova Função: Troca de Senha Obrigatória
+const changeFirstPassword = async (userId, newPassword) => {
+  if (!newPassword || newPassword.length < 6) {
+    throw new AppError('A nova senha deve ter no mínimo 6 caracteres.', 400);
+  }
+
+  const hashedPassword = await hashPassword(newPassword);
+
+  await prisma.user.update({
+    where: { id: parseInt(userId, 10) },
+    data: {
+      password: hashedPassword,
+      forcePasswordChange: false // Libera o painel
+    }
+  });
+
+  return true;
+};
+
 module.exports = {
   login,
-  register
+  register,
+  changeFirstPassword
 };
