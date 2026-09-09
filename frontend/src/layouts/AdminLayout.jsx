@@ -12,7 +12,8 @@ import {
   Building2,
   BarChart3,
   Settings,
-  CreditCard
+  CreditCard,
+  Network // <-- Ícone importado
 } from 'lucide-react';
 
 export default function AdminLayout() {
@@ -27,6 +28,7 @@ export default function AdminLayout() {
     { to: '/admin', label: 'Dashboard SaaS', icon: LayoutDashboard, exact: true },
     { to: '/admin/institutions', label: 'Escolas Clientes', icon: Building2 },
     { to: '/admin/plans', label: 'Planos e Preços', icon: CreditCard },
+    { to: '/admin/redes', label: 'Redes de Ensino', icon: Network }, // <-- Novo botão no menu
   ];
 
   const schoolAdminLinks = [

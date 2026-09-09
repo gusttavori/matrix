@@ -21,6 +21,7 @@ export default function Sidebar({ links = [], sectionLabel = '' }) {
     const labels = {
       ADMIN: 'Administrador',
       SECRETARY: 'Secretaria',
+      NETWORK_ADMIN: 'Gestor da Rede',
       TEACHER: 'Professor',
       STUDENT: 'Aluno'
     };

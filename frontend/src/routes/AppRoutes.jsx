@@ -9,6 +9,7 @@ import PublicLayout from '../layouts/PublicLayout';
 import AdminLayout from '../layouts/AdminLayout';
 import TeacherLayout from '../layouts/TeacherLayout';
 import StudentLayout from '../layouts/StudentLayout';
+import NetworkLayout from '../layouts/NetworkLayout'; // NOVO LAYOUT DA REDE
 
 // Pages - Public
 import LandingPage from '../pages/LandingPage';
@@ -19,8 +20,9 @@ import PlansPage from '../pages/PlansPage';
 // Pages - Admin / Super Admin
 import AdminDashboard from '../pages/admin/AdminDashboard';
 import SuperAdminDashboard from '../pages/superadmin/SuperAdminDashboard';
-import InstitutionsPage from '../pages/superadmin/InstitutionsPage'; // Adicione aqui
-import PlansAdminPage from '../pages/superadmin/PlansAdminPage'; // Adicione aqui
+import InstitutionsPage from '../pages/superadmin/InstitutionsPage';
+import PlansAdminPage from '../pages/superadmin/PlansAdminPage';
+import NetworkForm from '../pages/superadmin/NetworkForm';
 import StudentsPage from '../pages/admin/StudentsPage';
 import TeachersPage from '../pages/admin/TeachersPage';
 import ClassesPage from '../pages/admin/ClassesPage';
@@ -41,6 +43,10 @@ import StudentGradesPage from '../pages/student/StudentGradesPage';
 import StudentAttendancePage from '../pages/student/StudentAttendancePage';
 import StudentSubjectsPage from '../pages/student/StudentSubjectsPage';
 
+// Pages - Network (Secretaria B2G)
+import NetworkDashboard from '../pages/network/NetworkDashboard'; // NOVO DASHBOARD
+import NetworkSchoolForm from '../pages/network/NetworkSchoolForm';
+
 function LoginRedirect() {
   const { isAuthenticated, user } = useAuth();
 
@@ -51,6 +57,7 @@ function LoginRedirect() {
   const dashboards = {
     ADMIN: '/admin',
     SECRETARY: '/admin',
+    NETWORK_ADMIN: '/rede', // Redireciona o Secretário direto para /rede
     TEACHER: '/professor',
     STUDENT: '/aluno'
   };
@@ -62,7 +69,6 @@ function LoginRedirect() {
 function AdminHome() {
   const { user } = useAuth();
   
-  // VERIFICAÇÃO À PROVA DE BALAS: Checa o e-mail
   if (user?.email === 'mestre@educacaomatrix.com.br') {
     return <SuperAdminDashboard />;
   }
@@ -92,6 +98,8 @@ export default function AppRoutes() {
           <Route index element={<AdminHome />} />
           <Route path="institutions" element={<InstitutionsPage />} />
           <Route path="plans" element={<PlansAdminPage />} />
+          <Route path="redes" element={<NetworkForm />} /> 
+          
           <Route path="alunos" element={<StudentsPage />} />
           <Route path="professores" element={<TeachersPage />} />
           <Route path="turmas" element={<ClassesPage />} />
@@ -102,6 +110,19 @@ export default function AppRoutes() {
           
           <Route path="configuracoes" element={<SettingsPage />} />
           <Route path="assinatura" element={<SubscriptionPage />} />
+        </Route>
+
+        {/* NOVA ROTA B2G: SECRETARIA DE EDUCAÇÃO */}
+        <Route
+          path="/rede"
+          element={
+            <ProtectedRoute allowedRoles={['NETWORK_ADMIN']}>
+              <NetworkLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<NetworkDashboard />} />
+          <Route path="nova-escola" element={<NetworkSchoolForm />} /> {/* NOVA ROTA */}
         </Route>
 
         <Route

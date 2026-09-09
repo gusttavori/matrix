@@ -19,8 +19,7 @@ export function AuthProvider({ children }) {
         setUser(userData);
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         
-        // Buscar dados atualizados da instituição
-        fetchInstitutionData();
+        fetchInstitutionData(userData.role);
       } catch {
         logout();
       }
@@ -29,58 +28,71 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  const fetchInstitutionData = async () => {
+  const fetchInstitutionData = async (currentRole) => {
+    const roleToCheck = currentRole || user?.role;
+    
+    if (roleToCheck === 'NETWORK_ADMIN') {
+      return;
+    }
+
     try {
       const response = await api.get('/api/institutions/me');
       if (response.data.success) {
         setInstitution(response.data.data.institution);
         setSubscription(response.data.data.subscription);
       }
-    } catch {
-      // silently fail - institution data will load on next request
+    } catch (err) {
+      if (err.response?.status !== 403) {
+        console.error('Erro ao buscar instituição:', err);
+      }
     }
   };
 
   const login = useCallback(async (email, password) => {
-    const response = await api.post('/api/auth/login', { email, password });
+    try {
+      const response = await api.post('/api/auth/login', { email, password });
 
-    if (response.data.success) {
-      const { token, user: userData, institution: instData, subscription: subData } = response.data.data;
-      
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(userData));
-      
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      
-      setUser(userData);
-      setInstitution(instData);
-      setSubscription(subData);
+      if (response.data.success) {
+        const { token, user: userData, institution: instData, subscription: subData } = response.data.data;
+        
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(userData));
+        
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        
+        setUser(userData);
+        setInstitution(instData);
+        setSubscription(subData);
 
-      return userData;
+        return userData;
+      }
+    } catch (err) {
+      // Extrai a mensagem de erro formatada do back-end
+      throw new Error(err.response?.data?.message || 'E-mail ou senha incorretos.');
     }
-
-    throw new Error(response.data.message);
   }, []);
 
   const register = useCallback(async (data) => {
-    const response = await api.post('/api/auth/register', data);
+    try {
+      const response = await api.post('/api/auth/register', data);
 
-    if (response.data.success) {
-      const { token, user: userData, institution: instData, subscription: subData } = response.data.data;
-      
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(userData));
-      
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      
-      setUser(userData);
-      setInstitution(instData);
-      setSubscription(subData);
+      if (response.data.success) {
+        const { token, user: userData, institution: instData, subscription: subData } = response.data.data;
+        
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(userData));
+        
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        
+        setUser(userData);
+        setInstitution(instData);
+        setSubscription(subData);
 
-      return userData;
+        return userData;
+      }
+    } catch (err) {
+      throw new Error(err.response?.data?.message || 'Erro ao realizar o cadastro.');
     }
-
-    throw new Error(response.data.message);
   }, []);
 
   const logout = useCallback(() => {

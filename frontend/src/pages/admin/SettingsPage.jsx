@@ -16,12 +16,10 @@ export default function SettingsPage() {
 
   const isAdmin = user?.role === 'ADMIN';
 
-  // State: Dados da Instituição
   const [formData, setFormData] = useState({
     name: '', tradeName: '', phone: '', address: '', city: '', state: ''
   });
 
-  // State: Regras Acadêmicas
   const [academicData, setAcademicData] = useState({
     minAverage: '6.0', minAttendance: '75', pointsPerPeriod: '25'
   });
@@ -39,7 +37,6 @@ export default function SettingsPage() {
     }
   }, [institution]);
 
-  // Busca as regras acadêmicas atuais (executado apenas para ADMIN)
   useEffect(() => {
     const fetchAcademicSettings = async () => {
       try {
@@ -111,7 +108,6 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {/* Sistema de Abas */}
         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
           <button 
             onClick={() => setActiveTab('institution')}
@@ -130,7 +126,6 @@ export default function SettingsPage() {
           )}
         </div>
 
-        {/* Aba: Instituição */}
         {activeTab === 'institution' && (
           <Card>
             <form onSubmit={handleInstitutionSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -150,13 +145,12 @@ export default function SettingsPage() {
           </Card>
         )}
 
-        {/* Aba: Regras Acadêmicas */}
         {activeTab === 'academic' && isAdmin && (
           <Card title="Parâmetros de Avaliação (Ano Letivo Atual)">
             <form onSubmit={handleAcademicSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
               <Input id="minAverage" type="number" step="0.1" label="Média Mínima para Aprovação" value={academicData.minAverage} onChange={handleAcademicChange} required />
               <Input id="minAttendance" type="number" label="Frequência Mínima Exigida (%)" value={academicData.minAttendance} onChange={handleAcademicChange} required />
-              <Input id="pointsPerPeriod" type="number" label="Total de Pontos por Bimestre/Período" value={academicData.pointsPerPeriod} onChange={handleAcademicChange} required />
+              <Input id="pointsPerPeriod" type="number" label="Total de Pontos por Unidade/Período" value={academicData.pointsPerPeriod} onChange={handleAcademicChange} required />
               
               <div style={{ gridColumn: '1 / -1', padding: '1rem', backgroundColor: 'var(--primary-50)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem', color: 'var(--primary-800)' }}>
                 <strong>Atenção:</strong> Alterar a média ou a distribuição de pontos no meio do ano letivo recalculará automaticamente a situação de todos os alunos (Aprovado/Reprovado/Recuperação) nos relatórios gerenciais.

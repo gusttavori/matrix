@@ -11,15 +11,28 @@ import { Printer, Filter } from 'lucide-react';
 export default function AcademicReportPage() {
   const [reportData, setReportData] = useState([]);
   const [classes, setClasses] = useState([]);
+  const [periods, setPeriods] = useState([]);
+  const [schoolYears, setSchoolYears] = useState([]);
   const [loading, setLoading] = useState(true);
+  
   const [selectedClass, setSelectedClass] = useState('');
+  const [selectedPeriod, setSelectedPeriod] = useState('');
+  const [selectedSchoolYear, setSelectedSchoolYear] = useState('');
 
   useEffect(() => {
     async function init() {
       try {
         const classRes = await api.get('/api/classes');
-        setClasses(classRes.data.data);
-        await loadReport('');
+        const classList = classRes.data.data;
+        setClasses(classList);
+
+        const years = [...new Set(classList.map(c => c.schoolYear))].filter(Boolean).sort((a, b) => b - a);
+        setSchoolYears(years);
+
+        const defaultYear = years[0] || new Date().getFullYear();
+        setSelectedSchoolYear(defaultYear.toString());
+
+        await loadPeriodsAndReport(defaultYear.toString(), '', '');
       } catch (err) {
         console.error(err);
       } finally {
@@ -29,11 +42,37 @@ export default function AcademicReportPage() {
     init();
   }, []);
 
-  const loadReport = async (classId) => {
+  const loadPeriodsAndReport = async (year, classId, periodId) => {
+    try {
+      if (year) {
+        const periodRes = await api.get(`/api/teacher-panel/periods?schoolYear=${year}`);
+        setPeriods(periodRes.data.data || []);
+      } else {
+        setPeriods([]);
+      }
+      await loadReport(classId, periodId, year);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSchoolYearChange = async (year) => {
+    setSelectedSchoolYear(year);
+    setSelectedPeriod('');
+    setSelectedClass('');
+    setLoading(true);
+    await loadPeriodsAndReport(year, '', '');
+  };
+
+  const loadReport = async (classId, periodId, schoolYear) => {
     setLoading(true);
     try {
-      const url = classId ? `/api/reports/academic?classId=${classId}` : '/api/reports/academic';
-      const res = await api.get(url);
+      const params = new URLSearchParams();
+      if (classId) params.append('classId', classId);
+      if (periodId) params.append('periodId', periodId);
+      if (schoolYear && !classId) params.append('schoolYear', schoolYear);
+
+      const res = await api.get(`/api/reports/academic?${params.toString()}`);
       setReportData(res.data.data);
     } catch (err) {
       console.error(err);
@@ -43,7 +82,7 @@ export default function AcademicReportPage() {
   };
 
   const handleFilter = () => {
-    loadReport(selectedClass);
+    loadReport(selectedClass, selectedPeriod, selectedSchoolYear);
   };
 
   const handlePrint = () => {
@@ -62,8 +101,12 @@ export default function AcademicReportPage() {
     { header: 'Aluno', accessor: 'name', width: '30%' },
     { header: 'Média Global', render: (row) => row.average, width: '10%' },
     { header: 'Frequência Global', render: (row) => `${row.attendancePerc}%`, width: '10%' },
-    { header: 'Status (Baseado em Freq/Nota)', render: (row) => getStatusBadge(row.status), width: '15%' },
+    { header: 'Status', render: (row) => getStatusBadge(row.status), width: '15%' },
   ];
+
+  const filteredClasses = selectedSchoolYear 
+    ? classes.filter(c => c.schoolYear.toString() === selectedSchoolYear)
+    : classes;
 
   if (loading && reportData.length === 0 && classes.length === 0) {
     return <Loading text="Gerando relatório acadêmico..." />;
@@ -71,7 +114,6 @@ export default function AcademicReportPage() {
 
   return (
     <div className="print-container" style={{ minWidth: 0, width: '100%' }}>
-      {/* Travas absolutas para garantir que o Card não estoure a tela */}
       <style>{`
         .app-layout__main, .app-layout__content {
           min-width: 0 !important;
@@ -102,24 +144,48 @@ export default function AcademicReportPage() {
 
       <Card className="no-print" style={{ marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 150px', maxWidth: '200px' }}>
+            <Select 
+              label="Ano Letivo" 
+              value={selectedSchoolYear} 
+              onChange={(e) => handleSchoolYearChange(e.target.value)}
+              options={schoolYears.map(y => ({ value: y.toString(), label: y.toString() }))}
+            />
+          </div>
+
+          <div style={{ flex: '1 1 180px', maxWidth: '250px' }}>
+            <Select 
+              label="Unidade / Período" 
+              value={selectedPeriod} 
+              onChange={(e) => setSelectedPeriod(e.target.value)}
+              options={[
+                { value: '', label: 'Todos os Períodos' },
+                ...periods.map(p => ({ value: p.id.toString(), label: p.name }))
+              ]}
+            />
+          </div>
+
           <div style={{ flex: '1 1 200px', maxWidth: '300px' }}>
             <Select 
               label="Filtrar por Turma" 
               value={selectedClass} 
               onChange={(e) => setSelectedClass(e.target.value)}
               options={[
-                { value: '', label: 'Todas as Turmas' },
-                ...classes.map(c => ({ value: c.id.toString(), label: `${c.name} (${c.grade})` }))
+                { value: '', label: 'Todas as Turmas do Ano' },
+                ...filteredClasses.map(c => ({ value: c.id.toString(), label: `${c.name} (${c.grade})` }))
               ]}
             />
           </div>
+
           <Button icon={Filter} onClick={handleFilter}>Aplicar Filtro</Button>
         </div>
       </Card>
 
       <div className="print-only" style={{ marginBottom: '2rem', textAlign: 'center', borderBottom: '2px solid #000', paddingBottom: '1rem' }}>
         <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Relatório de Desempenho Acadêmico Global</h2>
-        <h3 style={{ fontSize: '1.25rem', marginTop: '0.5rem' }}>{selectedClass ? 'Filtro: Turma Específica' : 'Todas as Turmas'}</h3>
+        <h3 style={{ fontSize: '1.25rem', marginTop: '0.5rem' }}>
+          Ano: {selectedSchoolYear || 'Todos'} | {selectedClass ? 'Turma Específica' : 'Todas as Turmas'}
+        </h3>
         <p style={{ marginTop: '0.5rem' }}>Gerado em: {new Date().toLocaleDateString('pt-BR')}</p>
       </div>
 

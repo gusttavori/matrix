@@ -66,8 +66,8 @@ export default function CadernetaPage() {
         setSelectedPeriodId(openPeriod ? openPeriod.id : per[0].id);
       }
     } catch (err) {
-      console.error('Erro ao carregar bimestres:', err);
-      error('Erro ao carregar bimestres');
+      console.error('Erro ao carregar unidades:', err);
+      error('Erro ao carregar unidades');
     }
   };
 
@@ -77,7 +77,6 @@ export default function CadernetaPage() {
 
   return (
     <div style={{ minWidth: 0, width: '100%', maxWidth: '100%' }}>
-      {/* TRAVA ABSOLUTA DE RESPONSIVIDADE */}
       <style>{`
         .app-layout__main, .app-layout__content {
           min-width: 0 !important;
@@ -88,7 +87,6 @@ export default function CadernetaPage() {
           max-width: 100% !important;
           overflow-x: hidden !important; 
         }
-        /* Garantindo o scroll das tabelas internas do card */
         .card .table-scroll {
           overflow-x: auto !important;
         }
@@ -106,7 +104,7 @@ export default function CadernetaPage() {
         </div>
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', width: '100%', maxWidth: '300px' }}>
-          <label style={{ fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--text-secondary)' }}>Bimestre/Período Ativo:</label>
+          <label style={{ fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--text-secondary)' }}>Unidade/Período Ativo:</label>
           <select 
             className="select"
             style={{ fontWeight: 'bold', width: '100%' }}
@@ -116,7 +114,7 @@ export default function CadernetaPage() {
             {periods.length === 0 && <option value="">Nenhum período</option>}
             {periods.map(p => (
               <option key={p.id} value={p.id}>
-                {p.name} {p.isClosed ? '(FECHADO)' : ''}
+                {p.name.replace(/bimestre/gi, 'unidade')} {p.isClosed ? '(FECHADO)' : ''}
               </option>
             ))}
           </select>
@@ -151,7 +149,7 @@ export default function CadernetaPage() {
         </div>
         <div style={{ flexShrink: 0 }}>
           <Button variant={activeTab === 'closing' ? 'primary' : 'secondary'} icon={Lock} onClick={() => setActiveTab('closing')}>
-            Fechar Bimestre
+            Fechar Unidade
           </Button>
         </div>
       </div>
@@ -161,7 +159,7 @@ export default function CadernetaPage() {
         {activeTab === 'lessons' && <LessonTab classId={classId} subjectId={subjectId} periodId={selectedPeriodId} />}
         {activeTab === 'grades' && <GradeTab classId={classId} subjectId={subjectId} students={students} periodId={selectedPeriodId} />}
         {activeTab === 'reports' && <ReportsTab classId={classId} subjectId={subjectId} students={students} periodId={selectedPeriodId} />}
-        {activeTab === 'closing' && <ClosingTab classId={classId} subjectId={subjectId} periodId={selectedPeriodId} />}
+        {activeTab === 'closing' && <ClosingTab classId={classId} subjectId={subjectId} students={students} periodId={selectedPeriodId} />}
       </div>
     </div>
   );

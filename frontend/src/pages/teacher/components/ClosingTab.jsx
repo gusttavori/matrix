@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import api from '../../../services/api';
 import { useToast } from '../../../hooks/useToast';
 import Card from '../../../components/Card';
-import Badge from '../../../components/Badge';
 import Button from '../../../components/Button';
 import Loading from '../../../components/Loading';
 import { AlertCircle, CheckCircle, AlertTriangle, Info } from 'lucide-react';
@@ -36,13 +35,13 @@ export default function ClosingTab({ classId, subjectId, periodId }) {
       <Card>
         <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
           <AlertCircle size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
-          <p>Selecione um bimestre ativo para verificar pendências.</p>
+          <p>Selecione uma unidade ativa para verificar pendências.</p>
         </div>
       </Card>
     );
   }
 
-  if (loading || !data) return <Loading text="Analisando pendências do bimestre..." />;
+  if (loading || !data) return <Loading text="Analisando pendências da unidade..." />;
 
   const { isReady, pendencies, stats, period } = data;
 
@@ -52,14 +51,14 @@ export default function ClosingTab({ classId, subjectId, periodId }) {
       {period.isClosed ? (
         <div style={{ backgroundColor: 'var(--success-50)', border: '1px solid var(--success-200)', borderRadius: 'var(--radius-lg)', padding: '2rem', textAlign: 'center' }}>
           <CheckCircle size={48} style={{ color: 'var(--success-600)', margin: '0 auto 1rem' }} />
-          <h3 style={{ color: 'var(--success-800)', marginBottom: '0.5rem', fontWeight: 'bold' }}>Bimestre Fechado</h3>
-          <p style={{ color: 'var(--success-700)' }}>Este bimestre foi encerrado e os dados estão bloqueados para edição.</p>
+          <h3 style={{ color: 'var(--success-800)', marginBottom: '0.5rem', fontWeight: 'bold' }}>Unidade Fechada</h3>
+          <p style={{ color: 'var(--success-700)' }}>Esta unidade foi encerrada e os dados estão bloqueados para edição.</p>
         </div>
       ) : isReady ? (
         <div style={{ backgroundColor: 'var(--success-50)', border: '1px solid var(--success-200)', borderRadius: 'var(--radius-lg)', padding: '2rem', textAlign: 'center' }}>
           <CheckCircle size={48} style={{ color: 'var(--success-600)', margin: '0 auto 1rem' }} />
           <h3 style={{ color: 'var(--success-800)', marginBottom: '0.5rem', fontWeight: 'bold' }}>Tudo Pronto!</h3>
-          <p style={{ color: 'var(--success-700)' }}>Não há pendências de diário neste bimestre. Você está pronto para o fechamento.</p>
+          <p style={{ color: 'var(--success-700)' }}>Não há pendências de diário nesta unidade. Você está pronto para o fechamento.</p>
         </div>
       ) : (
         <div style={{ backgroundColor: 'var(--danger-50)', border: '1px solid var(--danger-200)', borderRadius: 'var(--radius-lg)', padding: '2rem' }}>
@@ -67,11 +66,11 @@ export default function ClosingTab({ classId, subjectId, periodId }) {
             <AlertTriangle size={32} style={{ color: 'var(--danger-600)' }} />
             <h3 style={{ color: 'var(--danger-800)', fontWeight: 'bold', margin: 0 }}>Existem Pendências</h3>
           </div>
-          <p style={{ color: 'var(--danger-700)', marginBottom: '1.5rem' }}>Resolva os itens abaixo antes de solicitar o fechamento do bimestre à secretaria.</p>
+          <p style={{ color: 'var(--danger-700)', marginBottom: '1.5rem' }}>Resolva os itens abaixo antes de solicitar o fechamento da unidade à secretaria.</p>
           
           <ul style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingLeft: '1.5rem', color: 'var(--danger-700)' }}>
             {pendencies.filter(p => p.type !== 'WARNING').map((p, idx) => (
-              <li key={idx} style={{ fontWeight: '500' }}>{p.message}</li>
+              <li key={idx} style={{ fontWeight: '500' }}>{p.message.replace(/bimestre/gi, 'unidade')}</li>
             ))}
           </ul>
         </div>
@@ -85,13 +84,13 @@ export default function ClosingTab({ classId, subjectId, periodId }) {
           </div>
           <ul style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingLeft: '1.5rem', color: 'var(--warning-700)', marginTop: '0.5rem' }}>
             {pendencies.filter(p => p.type === 'WARNING').map((p, idx) => (
-              <li key={idx}>{p.message}</li>
+              <li key={idx}>{p.message.replace(/bimestre/gi, 'unidade')}</li>
             ))}
           </ul>
         </div>
       )}
 
-      <Card title="Resumo do Bimestre">
+      <Card title="Resumo da Unidade">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
           <div style={{ padding: '1rem', backgroundColor: 'var(--gray-50)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
             <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--primary-600)' }}>{stats.totalStudents}</div>

@@ -136,29 +136,32 @@ export default function GradeTab({ classId, subjectId, students, periodId }) {
   const currentAssessment = assessments.find(a => a.id === selectedAssessmentId);
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', width: '100%' }}>
+      {/* Formulário Compacto de Nova Avaliação */}
       <Card title="Nova Avaliação">
-        <form onSubmit={handleCreateAssessment} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <form onSubmit={handleCreateAssessment} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
           <Input label="Título da Avaliação" value={newAssessment.name} onChange={e => setNewAssessment({...newAssessment, name: e.target.value})} required placeholder="Ex: Prova Escrita" />
-          <Input label="Data de Realização" type="date" value={newAssessment.date} onChange={e => setNewAssessment({...newAssessment, date: e.target.value})} required />
-          <Input label="Nota Máxima (Valor)" type="number" step="0.1" min="0" value={newAssessment.maxGrade} onChange={e => setNewAssessment({...newAssessment, maxGrade: e.target.value})} required />
+          <Input label="Data" type="date" value={newAssessment.date} onChange={e => setNewAssessment({...newAssessment, date: e.target.value})} required />
+          <Input label="Nota Máxima" type="number" step="0.1" min="0" value={newAssessment.maxGrade} onChange={e => setNewAssessment({...newAssessment, maxGrade: e.target.value})} required />
           
-          <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
-            <input type="checkbox" id="isRecovery" checked={newAssessment.isRecovery} onChange={e => setNewAssessment({...newAssessment, isRecovery: e.target.checked})} style={{ cursor: 'pointer' }} />
-            <label htmlFor="isRecovery" style={{ cursor: 'pointer', margin: 0, fontWeight: '500' }}>Esta é uma prova de recuperação</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', paddingBottom: '0.5rem' }}>
+            <input type="checkbox" id="isRecovery" checked={newAssessment.isRecovery} onChange={e => setNewAssessment({...newAssessment, isRecovery: e.target.checked})} style={{ cursor: 'pointer', width: '1rem', height: '1rem' }} />
+            <label htmlFor="isRecovery" style={{ cursor: 'pointer', fontSize: '0.875rem', fontWeight: '500' }}>É recuperação</label>
           </div>
-          <Button type="submit" style={{ marginTop: '1rem' }}>Criar Avaliação</Button>
+
+          <Button type="submit">Criar Avaliação</Button>
         </form>
       </Card>
 
+      {/* Lançamento em Largura Total */}
       <Card title="Lançamento Rápido de Notas">
         {loading ? (
           <Loading text="Carregando avaliações..." />
         ) : (
           <>
-            <div style={{ marginBottom: '1.5rem', maxWidth: '400px' }}>
+            <div style={{ marginBottom: '1.5rem', maxWidth: '450px' }}>
               <div className="form-group">
-                <label className="form-group__label">Selecione a Avaliação para lançar:</label>
+                <label className="form-group__label">Selecione a Avaliação:</label>
                 <select 
                   className="select" 
                   value={selectedAssessmentId || ''} 
@@ -169,11 +172,10 @@ export default function GradeTab({ classId, subjectId, students, periodId }) {
                     else setSelectedAssessmentId(null);
                   }}
                 >
-                  <option value="">-- Selecione uma Avaliação --</option>
+                  <option value="">-- Selecione --</option>
                   {assessments.map(a => (
                     <option key={a.id} value={a.id}>
-                      {a.name} ({new Date(a.date).toLocaleDateString('pt-BR')}) - Máx: {a.maxGrade} pts
-                      {a.isRecovery ? ' [RECUPERAÇÃO]' : ''}
+                      {a.name} ({new Date(a.date).toLocaleDateString('pt-BR')}) - Máx: {a.maxGrade} pts {a.isRecovery ? '[REC]' : ''}
                     </option>
                   ))}
                 </select>
@@ -182,16 +184,16 @@ export default function GradeTab({ classId, subjectId, students, periodId }) {
 
             {selectedAssessmentId && (
               <>
-                <div className="table-scroll" style={{ display: 'block', width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '0.5rem' }}>
-                  <table className="table" style={{ width: '100%', minWidth: '850px' }}>
+                <div className="table-scroll" style={{ width: '100%', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+                  <table className="table" style={{ width: '100%', minWidth: '900px' }}>
                     <thead>
                       <tr>
                         <th style={{ width: '5%' }}>Nº</th>
                         <th style={{ width: '25%' }}>Aluno</th>
                         <th style={{ width: '15%' }}>Status</th>
-                        <th style={{ width: '15%' }}>Nota</th>
-                        {!currentAssessment?.isRecovery && <th style={{ width: '15%' }}>Recup.</th>}
-                        <th style={{ width: '25%' }}>Observação</th>
+                        <th style={{ width: '12%' }}>Nota</th>
+                        {!currentAssessment?.isRecovery && <th style={{ width: '12%' }}>Recup.</th>}
+                        <th style={{ width: '31%' }}>Observação</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -225,7 +227,7 @@ export default function GradeTab({ classId, subjectId, students, periodId }) {
                               <input 
                                 id={`grade-value-${idx}`}
                                 type="number" step="0.1" min="0" max={currentAssessment?.maxGrade} disabled={notTaken} className="input"
-                                style={{ padding: '0.25rem 0.5rem', height: 'auto', textAlign: 'center', backgroundColor: notTaken ? 'var(--gray-100)' : 'var(--bg-color)', borderColor: (g.value !== '' && parseFloat(g.value) < (currentAssessment?.maxGrade * 0.6)) ? 'var(--danger-500)' : 'var(--border-color)' }}
+                                style={{ padding: '0.25rem 0.5rem', height: 'auto', textAlign: 'center', backgroundColor: notTaken ? 'var(--gray-100)' : 'var(--bg-color)' }}
                                 value={g.value} onChange={(e) => updateGrade(student.id, 'value', e.target.value)} onKeyDown={(e) => handleKeyDown(e, student.id, 'value', idx)}
                               />
                             </td>
@@ -240,12 +242,12 @@ export default function GradeTab({ classId, subjectId, students, periodId }) {
                               </td>
                             )}
                             <td>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.25rem 0.5rem' }}>
-                                <MessageSquare size={14} color="var(--text-secondary)" />
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.35rem 0.75rem' }}>
+                                <MessageSquare size={16} color="var(--text-secondary)" />
                                 <input
-                                  type="text" placeholder="Obs..." value={g.observation}
+                                  type="text" placeholder="Adicionar observação sobre o aluno..." value={g.observation}
                                   onChange={(e) => updateGrade(student.id, 'observation', e.target.value)}
-                                  style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: '0.75rem' }}
+                                  style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: '0.875rem' }}
                                 />
                               </div>
                             </td>
@@ -257,7 +259,7 @@ export default function GradeTab({ classId, subjectId, students, periodId }) {
                 </div>
                 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Dica: Pressione "Enter" para pular para o próximo aluno.</span>
+                  <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Dica: Pressione "Enter" para avançar entre as notas.</span>
                   <Button icon={Save} onClick={saveGrades} size="lg">Salvar Notas</Button>
                 </div>
               </>

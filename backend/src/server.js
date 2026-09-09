@@ -64,7 +64,8 @@ const assessmentRoutes = require('./routes/assessmentRoutes');
 const lessonRoutes = require('./routes/lessonRoutes');
 const closingRoutes = require('./routes/closingRoutes');
 const teacherReportRoutes = require('./routes/teacherReportRoutes');
-const studentPanelRoutes = require('./routes/studentPanelRoutes'); // Painel do Aluno importado
+const studentPanelRoutes = require('./routes/studentPanelRoutes');
+const networkRoutes = require('./routes/networkRoutes'); // Nova rota da Secretaria
 
 // ==========================================
 // APLICAÇÃO DAS ROTAS
@@ -85,7 +86,8 @@ app.use('/api/assessments', assessmentRoutes);
 app.use('/api/lessons', lessonRoutes);
 app.use('/api/closing', closingRoutes);
 app.use('/api/teacher-reports', teacherReportRoutes);
-app.use('/api/student-panel', studentPanelRoutes); // Painel do Aluno ativado
+app.use('/api/student-panel', studentPanelRoutes);
+app.use('/api/network', networkRoutes); // Novo endpoint B2G
 
 // Middleware de erro global
 app.use(errorHandler);
