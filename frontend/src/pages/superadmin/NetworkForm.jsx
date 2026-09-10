@@ -20,6 +20,12 @@ export default function NetworkForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!formData.networkName.trim() || !formData.city.trim() || !formData.state.trim() || !formData.adminName.trim() || !formData.adminEmail.trim() || !formData.adminPassword.trim()) {
+      error('Por favor, preencha todos os campos obrigatórios.');
+      return;
+    }
+
     setLoading(true);
     try {
       await api.post('/api/super-admin/networks', formData);

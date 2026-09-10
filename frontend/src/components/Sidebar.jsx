@@ -69,7 +69,8 @@ export default function Sidebar({ links = [], sectionLabel = '' }) {
       </nav>
 
       <div className="sidebar__footer">
-        <div className="sidebar__user" onClick={handleLogout} title="Sair">
+        {/* onClick retirado da div principal */}
+        <div className="sidebar__user">
           <div className="sidebar__avatar">
             {getInitials(user?.name)}
           </div>
@@ -77,7 +78,13 @@ export default function Sidebar({ links = [], sectionLabel = '' }) {
             <div className="sidebar__user-name truncate">{user?.name}</div>
             <div className="sidebar__user-role">{getRoleLabel(user?.role)}</div>
           </div>
-          <LogOut size={18} style={{ color: 'var(--gray-400)', flexShrink: 0 }} />
+          {/* onClick exclusivo no ícone, com cursor pointer */}
+          <LogOut 
+            size={18} 
+            style={{ color: 'var(--gray-400)', flexShrink: 0, cursor: 'pointer' }} 
+            onClick={handleLogout} 
+            title="Sair do Sistema" 
+          />
         </div>
       </div>
     </aside>

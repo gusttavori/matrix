@@ -26,21 +26,30 @@ export default function LoginPage() {
     try {
       const user = await login(email, password);
       
-      // MÁGICA DO PRIMEIRO ACESSO AQUI:
+      // 1. MÁGICA DO PRIMEIRO ACESSO AQUI:
       // Se a API avisar que é obrigatório trocar a senha, bloqueia o redirecionamento normal
       if (user.forcePasswordChange) {
         navigate('/primeiro-acesso');
         return; // Interrompe a execução
       }
 
-      // Fluxo normal para usuários que já trocaram a senha
+      // 2. Redirecionamento de segurança para o Super Admin (Mestre)
+      if (user.email === 'mestre@educacaomatrix.com.br') {
+        navigate('/admin');
+        return;
+      }
+
+      // 3. Fluxo normal mapeado por Papel (Role)
       const dashboards = {
-        ADMIN: '/admin',
-        SECRETARY: '/admin',
+        NETWORK_ADMIN: '/rede', // <-- A PEÇA QUE FALTAVA (Painel B2G)
+        ADMIN: '/admin',        // Painel do Diretor da Escola
+        SECRETARY: '/admin',    // Secretário da Escola
         TEACHER: '/professor',
         STUDENT: '/aluno'
       };
-      navigate(dashboards[user.role] || '/login');
+      
+      // Se o papel não estiver mapeado, tenta ir para um dashboard genérico
+      navigate(dashboards[user.role] || '/dashboard');
     } catch (err) {
       error(err.message || 'Erro ao realizar login.');
     } finally {

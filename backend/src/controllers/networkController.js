@@ -1,12 +1,11 @@
 const prisma = require('../utils/prisma');
 const { successResponse } = require('../utils/apiResponse');
-const { hashPassword } = require('../services/authService'); // Importação do hash de senha
+const { hashPassword } = require('../services/authService');
 
 const getDashboardData = async (req, res, next) => {
   try {
     const networkId = req.networkId;
 
-    // 1. Contagem macro da rede
     const totalInstitutions = await prisma.institution.count({
       where: { networkId, active: true }
     });
@@ -18,7 +17,6 @@ const getDashboardData = async (req, res, next) => {
     
     const instIds = institutions.map(i => i.id);
 
-    // 2. Soma total de alunos e professores de TODAS as escolas da rede
     const totalStudents = await prisma.student.count({
       where: { institutionId: { in: instIds }, status: 'ACTIVE' }
     });
@@ -27,7 +25,6 @@ const getDashboardData = async (req, res, next) => {
       where: { institutionId: { in: instIds }, active: true }
     });
 
-    // 3. Lista detalhada de escolas para a tabela de gestão da Secretaria
     const schoolsList = await prisma.institution.findMany({
       where: { networkId, active: true },
       include: {
@@ -67,7 +64,26 @@ const createNetworkSchool = async (req, res, next) => {
       adminName, adminEmail, adminPassword
     } = req.body;
 
-    // 1. Verifica se o e-mail do diretor já existe
+    // --- BLOQUEIO DE LIMITE DE UNIDADES (B2G) ---
+    const network = await prisma.network.findUnique({
+      where: { id: networkId },
+      include: {
+        _count: { select: { institutions: true } }
+      }
+    });
+
+    if (!network) {
+      return res.status(404).json({ success: false, message: 'Rede de Ensino não encontrada.' });
+    }
+
+    if (network._count.institutions >= network.maxInstitutions) {
+      return res.status(403).json({ 
+        success: false, 
+        message: `Limite de unidades excedido. Sua rede atingiu o máximo de ${network.maxInstitutions} escolas contratadas.` 
+      });
+    }
+    // --------------------------------------------
+
     const existingUser = await prisma.user.findUnique({ where: { email: adminEmail } });
     if (existingUser) {
       return res.status(400).json({ success: false, message: 'O e-mail do gestor/diretor já está em uso.' });
@@ -75,14 +91,12 @@ const createNetworkSchool = async (req, res, next) => {
 
     const hashedPassword = await hashPassword(adminPassword);
 
-    // 2. Busca um plano ativo padrão para vincular à nova escola (Plano Base)
     const defaultPlan = await prisma.plan.findFirst({ where: { active: true } });
     if (!defaultPlan) {
       return res.status(400).json({ success: false, message: 'Nenhum plano ativo configurado no sistema. A Diretoria Matrix precisa criar um plano primeiro.' });
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      // Cria a instituição forçando o vínculo com a rede do Secretário
       const school = await tx.institution.create({
         data: {
           networkId, 
@@ -97,7 +111,6 @@ const createNetworkSchool = async (req, res, next) => {
         }
       });
 
-      // Cria o Diretor da escola (Admin)
       await tx.user.create({
         data: {
           institutionId: school.id,
@@ -109,7 +122,6 @@ const createNetworkSchool = async (req, res, next) => {
         }
       });
 
-      // Ativa a escola no sistema gerando a assinatura
       await tx.subscription.create({
         data: {
           institutionId: school.id,

@@ -42,6 +42,14 @@ enum StudentStatus {
   TRANSFERRED
 }
 
+// Novo Enum para Tipos de Ocorrências
+enum OccurrenceType {
+  DISCIPLINARY // Indisciplina (brigas, suspensão)
+  HEALTH       // Saúde (passou mal)
+  PEDAGOGICAL  // Pedagógica
+  OTHER        // Outros
+}
+
 // ==================== PLATAFORMA E REDE ====================
 
 model Plan {
@@ -63,17 +71,18 @@ model Plan {
 
 // Nova Tabela: Secretaria de Educação / Prefeituras
 model Network {
-  id        Int      @id @default(autoincrement())
-  name      String   @db.VarChar(200)
-  document  String?  @db.VarChar(20)
-  city      String?  @db.VarChar(100)
-  state     String?  @db.VarChar(2)
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              Int           @id @default(autoincrement())
+  name            String        @db.VarChar(200)
+  document        String?       @db.VarChar(20)
+  city            String?       @db.VarChar(100)
+  state           String?       @db.VarChar(2)
+  maxInstitutions Int           @default(10) 
+  active          Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
-  institutions Institution[]
-  users        User[]
+  institutions    Institution[]
+  users           User[]
 
   @@map("networks")
 }
@@ -96,7 +105,7 @@ model Institution {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  network              Network?             @relation(fields: [networkId], references: [id])
+  network              Network?              @relation(fields: [networkId], references: [id])
   users                User[]
   students             Student[]
   teachers             Teacher[]
@@ -110,6 +119,7 @@ model Institution {
   grades               Grade[]
   attendances          Attendance[]
   studentObservations  StudentObservation[]
+  occurrences          Occurrence[]          // Novo relacionamento com ocorrências
   subscriptions        Subscription[]
 
   @@index([networkId])
@@ -151,10 +161,11 @@ model User {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  institution Institution? @relation(fields: [institutionId], references: [id])
-  network     Network?     @relation(fields: [networkId], references: [id])
-  student     Student?
-  teacher     Teacher?
+  institution           Institution? @relation(fields: [institutionId], references: [id])
+  network               Network?     @relation(fields: [networkId], references: [id])
+  student               Student?
+  teacher               Teacher?
+  registeredOccurrences Occurrence[] // Relacionamento das ocorrências registradas por este usuário
 
   @@index([institutionId])
   @@index([networkId])
@@ -182,6 +193,7 @@ model Student {
   grades       Grade[]
   attendances  Attendance[]
   observations StudentObservation[]
+  occurrences  Occurrence[]         // Histórico de Ocorrências do Aluno
 
   @@unique([institutionId, enrollment])
   @@index([institutionId])
@@ -281,13 +293,13 @@ model TeacherClassSubject {
 // ==================== CONFIGURAÇÃO ACADÊMICA E PERÍODOS ====================
 
 model AcademicSetting {
-  id              Int      @id @default(autoincrement())
-  institutionId   Int
-  schoolYear      Int
-  bimestersCount  Int      @default(4)
-  pointsPerPeriod Decimal  @default(25) @db.Decimal(5, 2)
-  minAverage      Decimal  @default(6) @db.Decimal(5, 2)
-  minAttendance   Int      @default(75) // %
+  id             Int      @id @default(autoincrement())
+  institutionId  Int
+  schoolYear     Int
+  bimestersCount Int      @default(4)
+  pointsPerPeriod Decimal @default(25) @db.Decimal(5, 2)
+  minAverage      Decimal @default(6) @db.Decimal(5, 2)
+  minAttendance   Int     @default(75) // %
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -429,7 +441,7 @@ model Attendance {
   @@map("attendances")
 }
 
-// ==================== OBSERVAÇÃO DO ALUNO ====================
+// ==================== OBSERVAÇÃO DO ALUNO (ANTIGA) ====================
 
 model StudentObservation {
   id            Int      @id @default(autoincrement())
@@ -448,4 +460,26 @@ model StudentObservation {
   @@index([institutionId, studentId])
   @@index([institutionId])
   @@map("student_observations")
+}
+
+// ==================== OCORRÊNCIAS (COMPORTAMENTO/SAÚDE) ====================
+
+model Occurrence {
+  id             Int            @id @default(autoincrement())
+  institutionId  Int
+  studentId      Int
+  registeredById Int            // Quem registrou (Diretor, Prof, Secretaria)
+  type           OccurrenceType @default(DISCIPLINARY)
+  title          String         @db.VarChar(150)
+  description    String         @db.Text
+  date           DateTime       @db.Date
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  institution    Institution    @relation(fields: [institutionId], references: [id])
+  student        Student        @relation(fields: [studentId], references: [id])
+  registeredBy   User           @relation(fields: [registeredById], references: [id])
+
+  @@index([institutionId, studentId])
+  @@map("occurrences")
 }

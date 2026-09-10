@@ -52,7 +52,6 @@ exports.createNetwork = async (req, res, next) => {
   try {
     const userId = req.userId;
 
-    // Trava de segurança: Apenas a Diretoria Matrix pode criar Redes B2G
     const currentUser = await prisma.user.findUnique({
       where: { id: Number(userId) }
     });
@@ -62,6 +61,11 @@ exports.createNetwork = async (req, res, next) => {
     }
 
     const { networkName, city, state, adminName, adminEmail, adminPassword } = req.body;
+
+    // TRAVA DE SEGURANÇA: Garante que os campos não estão vazios
+    if (!adminEmail || adminEmail.trim() === '') {
+      return res.status(400).json({ success: false, message: 'O e-mail de acesso é obrigatório.' });
+    }
 
     const existingUser = await prisma.user.findUnique({ where: { email: adminEmail } });
     if (existingUser) {
@@ -87,7 +91,8 @@ exports.createNetwork = async (req, res, next) => {
           password: hashedPassword,
           role: 'NETWORK_ADMIN',
           networkId: network.id,
-          forcePasswordChange: true 
+          forcePasswordChange: true,
+          active: true,
         }
       });
 

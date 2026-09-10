@@ -1,6 +1,8 @@
 const express = require('express');
+const multer = require('multer');
 const { successResponse } = require('../utils/apiResponse');
 const studentController = require('../controllers/studentController');
+const occurrenceController = require('../controllers/occurrenceController');
 const { createStudentSchema, updateStudentSchema } = require('../schemas/adminSchemas');
 const { authMiddleware } = require('../middlewares/authMiddleware');
 const { requireRole } = require('../middlewares/requireRole');
@@ -8,10 +10,19 @@ const { tenantMiddleware } = require('../middlewares/tenantMiddleware');
 
 const router = express.Router();
 
+// Configuração do Multer (Armazena temporariamente na memória RAM)
+const upload = multer({ storage: multer.memoryStorage() });
+
 router.use(authMiddleware);
 router.use(tenantMiddleware);
 router.use(requireRole('ADMIN', 'SECRETARY'));
 
+// ROTA DE IMPORTAÇÃO (Precisa vir antes de /:id para não ser confundida com um ID)
+router.post('/import', upload.single('file'), studentController.importStudents);
+router.post('/:studentId/occurrences', occurrenceController.createOccurrence);
+router.get('/:studentId/occurrences', occurrenceController.getStudentOccurrences);
+
+// Rotas Padrões
 router.get('/', async (req, res, next) => {
   try {
     const data = await studentController.getAll(req.institutionId);

@@ -1,4 +1,5 @@
 const prisma = require('../utils/prisma');
+const xlsx = require('xlsx');
 const { AppError } = require('../utils/AppError');
 const { checkStudentLimit } = require('../services/planLimitService');
 const { hashPassword } = require('../services/authService');
@@ -29,18 +30,19 @@ const getById = async (institutionId, id) => {
 const create = async (institutionId, data) => {
   await checkStudentLimit(institutionId);
 
-  // Check if class exists and belongs to institution
-  const classExists = await prisma.class.findFirst({
-    where: { id: data.classId, institutionId }
-  });
-  if (!classExists) throw new AppError('Turma não encontrada', 404);
+  if (data.classId) {
+    const classExists = await prisma.class.findFirst({
+      where: { id: data.classId, institutionId }
+    });
+    if (!classExists) throw new AppError('Turma não encontrada', 404);
+  }
 
   const existingUser = await prisma.user.findFirst({
     where: { email: data.email }
   });
   if (existingUser) throw new AppError('E-mail já está em uso', 400);
 
-  const hashedPassword = await hashPassword('123456'); // Default password
+  const hashedPassword = await hashPassword('123456');
 
   return await prisma.$transaction(async (tx) => {
     const user = await tx.user.create({
@@ -116,7 +118,6 @@ const update = async (institutionId, id, data) => {
 const remove = async (institutionId, id) => {
   const student = await getById(institutionId, id);
   
-  // Verifica se tem notas ou frequencias associadas (simplificado para MVP)
   const attendanceCount = await prisma.attendance.count({ where: { studentId: parseInt(id) } });
   const gradesCount = await prisma.grade.count({ where: { studentId: parseInt(id) } });
 
@@ -130,6 +131,51 @@ const remove = async (institutionId, id) => {
   });
 };
 
+// NOVA FUNÇÃO: Importação em lote via Excel (Upload direto para a memória)
+const importStudents = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Nenhum arquivo de planilha foi enviado.' });
+    }
+
+    // A instituição logada é passada pelo tenantMiddleware
+    const institutionId = req.institutionId; 
+    
+    // Processamento do buffer usando XLSX
+    const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0]; // Lê a primeira aba da planilha
+    const rawData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+    if (!rawData || rawData.length === 0) {
+      return res.status(400).json({ success: false, message: 'A planilha está vazia ou os dados são inválidos.' });
+    }
+
+    // Conversão das linhas para o modelo do banco de dados (ignorando duplicações)
+    const studentsToInsert = rawData.map(row => ({
+      institutionId: institutionId,
+      // Suporta flexibilidade no cabeçalho (NOME, Nome, nome)
+      name: row['NOME'] || row['Nome'] || row['nome'] || 'Aluno Sem Nome',
+      enrollment: String(row['MATRICULA'] || row['Matrícula'] || row['matricula'] || Math.floor(Math.random() * 1000000)),
+      shift: row['TURNO'] || row['Turno'] || 'Matutino',
+      status: 'ACTIVE'
+    }));
+
+    // Inserção Otimizada
+    const result = await prisma.student.createMany({
+      data: studentsToInsert,
+      skipDuplicates: true, // Crucial: Evita travamento se houver matrículas iguais
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `${result.count} alunos foram importados com sucesso!`,
+    });
+  } catch (error) {
+    console.error('Erro na importação de alunos:', error);
+    return res.status(500).json({ success: false, message: 'Falha ao processar a planilha. Verifique o formato do arquivo.' });
+  }
+};
+
 module.exports = {
-  getAll, getById, create, update, remove
+  getAll, getById, create, update, remove, importStudents
 };

@@ -1,18 +1,29 @@
-const { AppError } = require('../utils/AppError');
+const prisma = require('../utils/prisma');
 
-const networkMiddleware = (req, res, next) => {
-  // authMiddleware já deve ter populado req.user antes deste ponto
-  if (!req.user || req.user.role !== 'NETWORK_ADMIN') {
-    return next(new AppError('Acesso restrito à Secretaria de Educação (Rede)', 403));
-  }
-  
-  if (!req.user.networkId) {
-    return next(new AppError('Usuário não vinculado a nenhuma rede de ensino', 403));
-  }
+const networkMiddleware = async (req, res, next) => {
+  try {
+    // O authMiddleware anterior deve ter populado o req.userId (ou req.user.id)
+    const userId = req.userId || (req.user && req.user.id);
 
-  // Repassa o ID da Rede para o Controller
-  req.networkId = req.user.networkId;
-  next();
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Usuário não autenticado.' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: Number(userId) }
+    });
+
+    if (!user || user.role !== 'NETWORK_ADMIN' || !user.networkId) {
+      return res.status(403).json({ success: false, message: 'Acesso restrito à Secretaria de Educação (Rede).' });
+    }
+
+    // Repassa o ID da Rede para o Controller
+    req.networkId = user.networkId;
+    next();
+  } catch (error) {
+    console.error('Erro no networkMiddleware:', error);
+    return res.status(500).json({ success: false, message: 'Erro interno ao validar permissões.' });
+  }
 };
 
 module.exports = { networkMiddleware };

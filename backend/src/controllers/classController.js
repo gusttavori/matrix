@@ -5,6 +5,12 @@ const { checkClassLimit } = require('../services/planLimitService');
 const getAll = async (institutionId) => {
   return await prisma.class.findMany({
     where: { institutionId },
+    // Adicionado o _count para a tabela saber a quantidade de alunos da turma
+    include: {
+      _count: {
+        select: { students: true }
+      }
+    },
     orderBy: [{ schoolYear: 'desc' }, { grade: 'asc' }, { name: 'asc' }]
   });
 };

@@ -13,9 +13,11 @@ export default function NetworkDashboard() {
     async function loadData() {
       try {
         const res = await api.get('/api/network/dashboard');
-        setDashboardData(res.data.data);
+        if (res.data && res.data.data) {
+          setDashboardData(res.data.data);
+        }
       } catch (err) {
-        console.error(err);
+        console.error('Erro ao buscar dashboard da rede:', err);
       } finally {
         setLoading(false);
       }
@@ -24,6 +26,16 @@ export default function NetworkDashboard() {
   }, []);
 
   if (loading) return <Loading text="Consolidando dados da rede municipal..." />;
+  
+  // TRAVA DE SEGURANÇA: Se a API falhou, não tenta desestruturar
+  if (!dashboardData) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center' }}>
+        <h2>Não foi possível carregar os dados da Secretaria.</h2>
+        <p>Verifique sua conexão ou contate o suporte da Educação Matrix.</p>
+      </div>
+    );
+  }
 
   const { overview, schools } = dashboardData;
 
@@ -41,7 +53,6 @@ export default function NetworkDashboard() {
         <p className="page-header__subtitle">Visão unificada e indicadores globais de todas as escolas da sua rede</p>
       </div>
 
-      {/* Cards de Métricas Agregadas */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
         <Card style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.5rem' }}>
           <div style={{ padding: '1rem', backgroundColor: 'var(--primary-50)', borderRadius: 'var(--radius-md)', color: 'var(--primary-600)' }}>

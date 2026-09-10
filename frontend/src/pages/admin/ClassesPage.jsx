@@ -11,7 +11,7 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import EmptyState from '../../components/EmptyState';
 import Loading from '../../components/Loading';
 import Badge from '../../components/Badge';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users } from 'lucide-react';
 
 export default function ClassesPage() {
   const [classes, setClasses] = useState([]);
@@ -40,7 +40,7 @@ export default function ClassesPage() {
       const res = await api.get('/api/classes');
       setClasses(res.data.data);
     } catch (err) {
-      error('Erro ao carregar dados.');
+      error('Erro ao carregar dados das turmas.');
     } finally {
       setLoading(false);
     }
@@ -110,10 +110,20 @@ export default function ClassesPage() {
   ];
 
   const columns = [
-    { header: 'Nome da Turma', accessor: 'name', width: '30%' },
-    { header: 'Série/Ano', accessor: 'grade', width: '25%' },
+    { header: 'Nome da Turma', accessor: 'name', width: '25%' },
+    { header: 'Série/Ano', accessor: 'grade', width: '20%' },
     { header: 'Turno', accessor: 'shift', width: '15%' },
     { header: 'Ano Letivo', accessor: 'schoolYear', width: '10%' },
+    { 
+      header: 'Alunos', 
+      render: (row) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)' }}>
+          <Users size={16} /> 
+          <span style={{ fontWeight: 'bold' }}>{row._count?.students || 0}</span>
+        </div>
+      ), 
+      width: '10%' 
+    },
     { header: 'Status', render: (row) => (
       <Badge variant={row.active ? 'success' : 'neutral'}>
         {row.active ? 'Ativa' : 'Inativa'}
@@ -188,7 +198,7 @@ export default function ClassesPage() {
         onClose={() => setDeleteConfirmOpen(false)}
         onConfirm={handleDelete}
         title="Excluir Turma"
-        description={`Tem certeza que deseja excluir a turma ${currentClass?.name}?`}
+        description={`Tem certeza que deseja excluir a turma ${currentClass?.name}? Certifique-se de que ela não possui alunos matriculados.`}
       />
     </div>
   );
