@@ -1,8 +1,8 @@
 const { z } = require('zod');
 
 const loginSchema = z.object({
-  email: z.string().email('E-mail inválido'),
-  password: z.string().min(6, 'A senha deve ter no mínimo 6 caracteres')
+  email: z.string().min(1, 'Informe o e-mail ou a matrícula'),
+  password: z.string().min(1, 'Informe a senha')
 });
 
 const registerSchema = z.object({
