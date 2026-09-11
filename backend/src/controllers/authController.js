@@ -3,10 +3,13 @@ const { AppError } = require('../utils/AppError');
 const { verifyPassword, generateToken, hashPassword } = require('../services/authService');
 
 const login = async (email, password) => {
-  // Se o login digitado NÃO contiver '@', tratamos como matrícula alfanumérica do aluno
   let searchIdentifier = email.trim();
+  
+  // Se o login digitado NÃO contiver '@', tratamos como matrícula alfanumérica e convertemos para minúsculas
   if (!searchIdentifier.includes('@')) {
-    searchIdentifier = `${searchIdentifier}@aluno.matrix`;
+    searchIdentifier = `${searchIdentifier.toLowerCase()}@aluno.matrix`;
+  } else {
+    searchIdentifier = searchIdentifier.toLowerCase();
   }
 
   const user = await prisma.user.findFirst({
