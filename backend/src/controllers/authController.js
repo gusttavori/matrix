@@ -3,9 +3,12 @@ const { AppError } = require('../utils/AppError');
 const { verifyPassword, generateToken, hashPassword } = require('../services/authService');
 
 const login = async (email, password) => {
-  let searchIdentifier = email.trim();
+  if (!email || !password) {
+    throw new AppError('Informe a identificação e a senha.', 400);
+  }
+
+  let searchIdentifier = String(email).trim();
   
-  // Se o login digitado NÃO contiver '@', tratamos como matrícula alfanumérica e convertemos para minúsculas
   if (!searchIdentifier.includes('@')) {
     searchIdentifier = `${searchIdentifier.toLowerCase()}@aluno.matrix`;
   } else {
@@ -24,7 +27,7 @@ const login = async (email, password) => {
           }
         }
       },
-      network: true // Inclui os dados da Prefeitura (se for NETWORK_ADMIN)
+      network: true
     }
   });
 
@@ -37,7 +40,6 @@ const login = async (email, password) => {
     throw new AppError('Credenciais inválidas ou usuário inativo.', 401);
   }
 
-  // Verifica se o usuário pertence a uma instituição e se ela está ativa
   if (user.institution && !user.institution.active) {
     throw new AppError('Instituição inativa. Entre em contato com o suporte.', 403);
   }
@@ -52,10 +54,9 @@ const login = async (email, password) => {
       name: user.name,
       email: user.email,
       role: user.role,
-      forcePasswordChange: user.forcePasswordChange, // Flag de primeira senha
-      permissions: user.permissions // Permissões granulares da secretaria
+      forcePasswordChange: user.forcePasswordChange,
+      permissions: user.permissions
     },
-    // Trata como null caso o usuário seja da Prefeitura (NETWORK_ADMIN)
     institution: user.institution ? {
       id: user.institution.id,
       name: user.institution.name,
@@ -118,7 +119,7 @@ const register = async (data) => {
         email,
         password: hashedPassword,
         role: 'ADMIN',
-        forcePasswordChange: false // Admin não precisa trocar senha ao registrar
+        forcePasswordChange: false
       }
     });
 
@@ -148,7 +149,6 @@ const register = async (data) => {
   };
 };
 
-// Nova Função: Troca de Senha Obrigatória
 const changeFirstPassword = async (userId, newPassword) => {
   if (!newPassword || newPassword.length < 6) {
     throw new AppError('A nova senha deve ter no mínimo 6 caracteres.', 400);
@@ -160,7 +160,7 @@ const changeFirstPassword = async (userId, newPassword) => {
     where: { id: parseInt(userId, 10) },
     data: {
       password: hashedPassword,
-      forcePasswordChange: false // Libera o painel
+      forcePasswordChange: false
     }
   });
 
