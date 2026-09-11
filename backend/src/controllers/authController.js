@@ -10,32 +10,89 @@ const login = async (req, res, next) => {
       throw new AppError('Informe a identificação e a senha.', 400);
     }
 
-    let searchIdentifier = String(email).trim();
-    
-    if (!searchIdentifier.includes('@')) {
-      searchIdentifier = `${searchIdentifier.toLowerCase()}@aluno.matrix`;
-    } else {
-      searchIdentifier = searchIdentifier.toLowerCase();
-    }
+    const identifier = String(email).trim();
+    let user = null;
 
-    const user = await prisma.user.findFirst({
-      where: { email: searchIdentifier },
-      include: {
-        institution: {
-          include: {
-            subscriptions: {
-              orderBy: { createdAt: 'desc' },
-              take: 1,
-              include: { plan: true }
+    if (identifier.includes('@')) {
+      // 1. Busca direta por e-mail (Gestores, Professores, Admins)
+      user = await prisma.user.findFirst({
+        where: { email: identifier.toLowerCase() },
+        include: {
+          institution: {
+            include: {
+              subscriptions: {
+                orderBy: { createdAt: 'desc' },
+                take: 1,
+                include: { plan: true }
+              }
             }
+          },
+          network: true
+        }
+      });
+    } else {
+      // 2. É uma matrícula (ou identificador sem '@')
+      const lowerIdent = identifier.toLowerCase();
+
+      // Tenta buscar diretamente na tabela Student pelo campo enrollment
+      const student = await prisma.student.findFirst({
+        where: {
+          enrollment: {
+            equals: identifier,
+            mode: 'insensitive'
           }
         },
-        network: true
+        include: {
+          user: {
+            include: {
+              institution: {
+                include: {
+                  subscriptions: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 1,
+                    include: { plan: true }
+                  }
+                }
+              },
+              network: true
+            }
+          }
+        }
+      });
+
+      if (student && student.user) {
+        user = student.user;
+      } else {
+        // Fallback: busca na tabela User pelo e-mail gerado ou direto
+        user = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { email: `${lowerIdent}@aluno.matrix` },
+              { email: lowerIdent }
+            ]
+          },
+          include: {
+            institution: {
+              include: {
+                subscriptions: {
+                  orderBy: { createdAt: 'desc' },
+                  take: 1,
+                  include: { plan: true }
+                }
+              }
+            },
+            network: true
+          }
+        });
       }
-    });
+    }
 
     if (!user || !user.active) {
       throw new AppError('Credenciais inválidas ou usuário inativo.', 401);
+    }
+
+    if (!user.password) {
+      throw new AppError('Usuário não possui senha cadastrada.', 401);
     }
 
     const isMatch = await verifyPassword(password, user.password);
@@ -45,6 +102,10 @@ const login = async (req, res, next) => {
 
     if (user.institution && !user.institution.active) {
       throw new AppError('Instituição inativa. Entre em contato com o suporte.', 403);
+    }
+
+    if (!process.env.JWT_SECRET) {
+      throw new AppError('Configuração de segurança ausente no servidor (JWT_SECRET).', 500);
     }
 
     const token = generateToken(user);
@@ -170,7 +231,7 @@ const register = async (req, res, next) => {
 
 const changeFirstPassword = async (req, res, next) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.id || req.user?.userId;
     const { newPassword } = req.body;
 
     if (!newPassword || newPassword.length < 6) {
