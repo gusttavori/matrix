@@ -57,6 +57,8 @@ const updateAcademicSettings = async (req, res, next) => {
     const currentYear = new Date().getFullYear();
     const { minAverage, minAttendance, pointsPerPeriod, unitsCount } = req.body;
 
+    const parsedUnits = parseInt(unitsCount, 10) || 4;
+
     const existing = await prisma.academicSetting.findFirst({
       where: { institutionId: parseInt(institutionId, 10), schoolYear: currentYear }
     });
@@ -65,7 +67,7 @@ const updateAcademicSettings = async (req, res, next) => {
       minAverage: parseFloat(minAverage),
       minAttendance: parseFloat(minAttendance),
       pointsPerPeriod: parseFloat(pointsPerPeriod),
-      unitsCount: parseInt(unitsCount, 10) || 4
+      unitsCount: parsedUnits
     };
 
     let settings;
@@ -84,7 +86,35 @@ const updateAcademicSettings = async (req, res, next) => {
       });
     }
 
-    res.json({ success: true, data: settings });
+    // GERAÇÃO AUTOMÁTICA DOS PERÍODOS LETIVOS
+    for (let i = 1; i <= parsedUnits; i++) {
+      const periodExists = await prisma.academicPeriod.findFirst({
+        where: {
+          institutionId: parseInt(institutionId, 10),
+          schoolYear: currentYear,
+          number: i
+        }
+      });
+
+      if (!periodExists) {
+        const startDate = new Date(currentYear, (i - 1) * 3, 1);
+        const endDate = new Date(currentYear, i * 3, 0);
+
+        await prisma.academicPeriod.create({
+          data: {
+            institutionId: parseInt(institutionId, 10),
+            schoolYear: currentYear,
+            name: `${i}º Período`,
+            number: i,
+            startDate,
+            endDate,
+            isClosed: false
+          }
+        });
+      }
+    }
+
+    res.json({ success: true, data: settings, message: 'Regras e períodos atualizados com sucesso!' });
   } catch (error) { next(error); }
 };
 
