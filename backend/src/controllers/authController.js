@@ -1,7 +1,6 @@
 const prisma = require('../utils/prisma');
 const { AppError } = require('../utils/AppError');
-// Certifique-se de que estes utilitários apontam para onde realmente estão suas funções de hash/jwt
-const { verifyPassword, generateToken, hashPassword } = require('../utils/auth'); // ou '../services/authService'
+const { verifyPassword, generateToken, hashPassword } = require('../services/authService');
 
 const login = async (req, res, next) => {
   try {
@@ -80,7 +79,7 @@ const login = async (req, res, next) => {
       }
     });
   } catch (error) {
-    console.error('ERRO DETALHADO NO LOGIN:', error); // Exibe o erro real no console do Render
+    console.error('ERRO DETALHADO NO LOGIN:', error);
     next(error);
   }
 };
