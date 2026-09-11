@@ -11,7 +11,8 @@ export default function NetworkForm() {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     networkName: '', city: '', state: '', 
-    adminName: '', adminEmail: '', adminPassword: ''
+    adminName: '', adminEmail: '', adminPassword: '',
+    maxInstitutions: '1' // Valor padrão inicial
   });
 
   const handleChange = (e) => {
@@ -28,11 +29,17 @@ export default function NetworkForm() {
 
     setLoading(true);
     try {
-      await api.post('/api/super-admin/networks', formData);
+      const payload = {
+        ...formData,
+        maxInstitutions: parseInt(formData.maxInstitutions, 10) || 1
+      };
+
+      await api.post('/api/super-admin/networks', payload);
       success('Rede de Ensino e Secretário criados com sucesso!');
       setFormData({
         networkName: '', city: '', state: '', 
-        adminName: '', adminEmail: '', adminPassword: ''
+        adminName: '', adminEmail: '', adminPassword: '',
+        maxInstitutions: '1'
       });
     } catch (err) {
       error(err.response?.data?.message || 'Erro ao criar a rede.');
@@ -59,6 +66,9 @@ export default function NetworkForm() {
             </div>
             <Input id="city" label="Cidade" value={formData.city} onChange={handleChange} required />
             <Input id="state" label="Estado (UF)" value={formData.state} onChange={handleChange} maxLength={2} required />
+            <div style={{ gridColumn: '1 / -1' }}>
+              <Input id="maxInstitutions" type="number" min="1" label="Limite de Escolas Contratadas (B2G)" value={formData.maxInstitutions} onChange={handleChange} required />
+            </div>
           </div>
         </Card>
 

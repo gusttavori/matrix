@@ -3,8 +3,14 @@ const { AppError } = require('../utils/AppError');
 const { verifyPassword, generateToken, hashPassword } = require('../services/authService');
 
 const login = async (email, password) => {
+  // Se o login digitado NÃO contiver '@', tratamos como matrícula alfanumérica do aluno
+  let searchIdentifier = email.trim();
+  if (!searchIdentifier.includes('@')) {
+    searchIdentifier = `${searchIdentifier}@aluno.matrix`;
+  }
+
   const user = await prisma.user.findFirst({
-    where: { email },
+    where: { email: searchIdentifier },
     include: {
       institution: {
         include: {

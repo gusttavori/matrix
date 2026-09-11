@@ -39,7 +39,9 @@ const create = async (institutionId, data) => {
   });
   if (existingUser) throw new AppError('E-mail já está em uso', 400);
 
-  const hashedPassword = await hashPassword('123456'); // Default password
+  // Gera uma senha aleatória de 6 dígitos (ex: "482910")
+  const generatedPassword = Math.floor(100000 + Math.random() * 900000).toString();
+  const hashedPassword = await hashPassword(generatedPassword);
 
   return await prisma.$transaction(async (tx) => {
     const user = await tx.user.create({
@@ -49,11 +51,12 @@ const create = async (institutionId, data) => {
         email: data.email,
         password: hashedPassword,
         role: 'TEACHER',
-        active: true
+        active: true,
+        forcePasswordChange: true // Obriga o professor a trocar no primeiro login
       }
     });
 
-    return await tx.teacher.create({
+    const newTeacher = await tx.teacher.create({
       data: {
         institutionId: instId,
         userId: user.id,
@@ -65,6 +68,9 @@ const create = async (institutionId, data) => {
         user: { select: { email: true } }
       }
     });
+
+    // Retorna o professor criado com a senha gerada para exibir no Front-end
+    return { ...newTeacher, generatedPassword };
   });
 };
 

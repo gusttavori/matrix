@@ -18,7 +18,8 @@ exports.getMetrics = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Acesso negado. Apenas Diretoria Matrix.' });
     }
 
-    const masterInstitutionId = currentUser.institutionId;
+    // TRAVA: Se a instituição for null (comum para a Diretoria isolada), usamos 0 para não quebrar o Prisma
+    const masterInstitutionId = currentUser.institutionId || 0;
 
     const institutionsCount = await prisma.institution.count({
       where: { id: { not: masterInstitutionId }, active: true }
@@ -60,7 +61,7 @@ exports.createNetwork = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Acesso negado. Apenas Diretoria Matrix.' });
     }
 
-    const { networkName, city, state, adminName, adminEmail, adminPassword } = req.body;
+    const { networkName, city, state, adminName, adminEmail, adminPassword, maxInstitutions } = req.body;
 
     // TRAVA DE SEGURANÇA: Garante que os campos não estão vazios
     if (!adminEmail || adminEmail.trim() === '') {
@@ -80,7 +81,8 @@ exports.createNetwork = async (req, res, next) => {
           name: networkName,
           city,
           state,
-          active: true
+          active: true,
+          maxInstitutions: maxInstitutions ? parseInt(maxInstitutions, 10) : 1
         }
       });
 

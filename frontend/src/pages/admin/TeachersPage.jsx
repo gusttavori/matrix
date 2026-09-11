@@ -92,8 +92,14 @@ export default function TeachersPage() {
         await api.put(`/api/teachers/${currentTeacher.id}`, payload);
         success('Professor atualizado com sucesso.');
       } else {
-        await api.post('/api/teachers', formData);
-        success('Professor criado com sucesso.');
+        const res = await api.post('/api/teachers', formData);
+        const senhaGerada = res.data.data?.generatedPassword;
+        
+        if (senhaGerada) {
+          alert(`✅ Professor cadastrado com sucesso!\n\nA senha temporária de acesso dele é: ${senhaGerada}\n\nCopie esta senha e repasse ao professor. Ele será solicitado a trocá-la no primeiro login.`);
+        } else {
+          success('Professor criado com sucesso.');
+        }
       }
       setModalOpen(false);
       loadData();

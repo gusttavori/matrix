@@ -1,31 +1,37 @@
 const prisma = require('../utils/prisma');
 const { AppError } = require('../utils/AppError');
 
-const getMyInstitution = async (institutionId) => {
-  const institution = await prisma.institution.findUnique({
-    where: { id: institutionId }
-  });
+const getMyInstitution = async (req, res, next) => {
+  try {
+    const institutionId = req.institutionId || req.user?.institutionId;
+    const institution = await prisma.institution.findUnique({
+      where: { id: parseInt(institutionId, 10) }
+    });
 
-  if (!institution) throw new AppError('Instituição não encontrada.', 404);
+    if (!institution) throw new AppError('Instituição não encontrada.', 404);
 
-  const subscription = await prisma.subscription.findFirst({
-    where: { institutionId },
-    orderBy: { createdAt: 'desc' },
-    include: { plan: true }
-  });
+    const subscription = await prisma.subscription.findFirst({
+      where: { institutionId: parseInt(institutionId, 10) },
+      orderBy: { createdAt: 'desc' },
+      include: { plan: true }
+    });
 
-  return { institution, subscription };
+    res.json({ success: true, data: { institution, subscription } });
+  } catch (error) { next(error); }
 };
 
-const updateInstitution = async (institutionId, data) => {
-  const { name, tradeName, phone, address, city, state } = data;
-  
-  const updated = await prisma.institution.update({
-    where: { id: institutionId },
-    data: { name, tradeName, phone, address, city, state }
-  });
+const updateInstitution = async (req, res, next) => {
+  try {
+    const institutionId = req.institutionId || req.user?.institutionId;
+    const { name, tradeName, phone, address, city, state } = req.body;
+    
+    const updated = await prisma.institution.update({
+      where: { id: parseInt(institutionId, 10) },
+      data: { name, tradeName, phone, address, city, state }
+    });
 
-  return updated;
+    res.json({ success: true, data: updated, message: 'Configurações atualizadas' });
+  } catch (error) { next(error); }
 };
 
 const getAcademicSettings = async (req, res, next) => {
@@ -37,7 +43,6 @@ const getAcademicSettings = async (req, res, next) => {
       where: { institutionId: parseInt(institutionId, 10), schoolYear: currentYear }
     });
 
-    // Valores padrão caso a escola ainda não tenha configurado
     if (!settings) {
       settings = { minAverage: 6.0, minAttendance: 75, pointsPerPeriod: 25 };
     }
@@ -82,7 +87,6 @@ const updateAcademicSettings = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-// CORREÇÃO: As funções agora estão devidamente exportadas
 module.exports = {
   getMyInstitution,
   updateInstitution,
