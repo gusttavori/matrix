@@ -90,11 +90,11 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <Input
-            label="E-mail"
-            type="email"
+            label="E-mail ou Matrícula"
+            type="text"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="seu@email.com"
+            placeholder="seu@email.com ou código da matrícula"
             required
           />
           <Input
