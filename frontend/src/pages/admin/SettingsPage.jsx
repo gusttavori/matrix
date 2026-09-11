@@ -21,7 +21,7 @@ export default function SettingsPage() {
   });
 
   const [academicData, setAcademicData] = useState({
-    minAverage: '6.0', minAttendance: '75', pointsPerPeriod: '25'
+    minAverage: '6.0', minAttendance: '75', pointsPerPeriod: '25', unitsCount: '4'
   });
 
   useEffect(() => {
@@ -45,7 +45,8 @@ export default function SettingsPage() {
           setAcademicData({
             minAverage: res.data.data.minAverage || '6.0',
             minAttendance: res.data.data.minAttendance || '75',
-            pointsPerPeriod: res.data.data.pointsPerPeriod || '25'
+            pointsPerPeriod: res.data.data.pointsPerPeriod || '25',
+            unitsCount: res.data.data.unitsCount ? String(res.data.data.unitsCount) : '4'
           });
         }
       } catch (err) {
@@ -151,6 +152,7 @@ export default function SettingsPage() {
               <Input id="minAverage" type="number" step="0.1" label="Média Mínima para Aprovação" value={academicData.minAverage} onChange={handleAcademicChange} required />
               <Input id="minAttendance" type="number" label="Frequência Mínima Exigida (%)" value={academicData.minAttendance} onChange={handleAcademicChange} required />
               <Input id="pointsPerPeriod" type="number" label="Total de Pontos por Unidade/Período" value={academicData.pointsPerPeriod} onChange={handleAcademicChange} required />
+              <Input id="unitsCount" type="number" min="1" max="6" label="Quantidade de Unidades / Períodos no Ano" value={academicData.unitsCount} onChange={handleAcademicChange} required />
               
               <div style={{ gridColumn: '1 / -1', padding: '1rem', backgroundColor: 'var(--primary-50)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem', color: 'var(--primary-800)' }}>
                 <strong>Atenção:</strong> Alterar a média ou a distribuição de pontos no meio do ano letivo recalculará automaticamente a situação de todos os alunos (Aprovado/Reprovado/Recuperação) nos relatórios gerenciais.

@@ -44,7 +44,7 @@ const getAcademicSettings = async (req, res, next) => {
     });
 
     if (!settings) {
-      settings = { minAverage: 6.0, minAttendance: 75, pointsPerPeriod: 25 };
+      settings = { minAverage: 6.0, minAttendance: 75, pointsPerPeriod: 25, unitsCount: 4 };
     }
 
     res.json({ success: true, data: settings });
@@ -55,30 +55,31 @@ const updateAcademicSettings = async (req, res, next) => {
   try {
     const institutionId = req.institutionId || req.user?.institutionId;
     const currentYear = new Date().getFullYear();
-    const { minAverage, minAttendance, pointsPerPeriod } = req.body;
+    const { minAverage, minAttendance, pointsPerPeriod, unitsCount } = req.body;
 
     const existing = await prisma.academicSetting.findFirst({
       where: { institutionId: parseInt(institutionId, 10), schoolYear: currentYear }
     });
 
+    const dataToSave = {
+      minAverage: parseFloat(minAverage),
+      minAttendance: parseFloat(minAttendance),
+      pointsPerPeriod: parseFloat(pointsPerPeriod),
+      unitsCount: parseInt(unitsCount, 10) || 4
+    };
+
     let settings;
     if (existing) {
       settings = await prisma.academicSetting.update({
         where: { id: existing.id },
-        data: {
-          minAverage: parseFloat(minAverage),
-          minAttendance: parseFloat(minAttendance),
-          pointsPerPeriod: parseFloat(pointsPerPeriod)
-        }
+        data: dataToSave
       });
     } else {
       settings = await prisma.academicSetting.create({
         data: {
           institutionId: parseInt(institutionId, 10),
           schoolYear: currentYear,
-          minAverage: parseFloat(minAverage),
-          minAttendance: parseFloat(minAttendance),
-          pointsPerPeriod: parseFloat(pointsPerPeriod)
+          ...dataToSave
         }
       });
     }

@@ -293,13 +293,13 @@ model TeacherClassSubject {
 // ==================== CONFIGURAÇÃO ACADÊMICA E PERÍODOS ====================
 
 model AcademicSetting {
-  id             Int      @id @default(autoincrement())
-  institutionId  Int
-  schoolYear     Int
-  bimestersCount Int      @default(4)
-  pointsPerPeriod Decimal @default(25) @db.Decimal(5, 2)
-  minAverage      Decimal @default(6) @db.Decimal(5, 2)
-  minAttendance   Int     @default(75) // %
+  id              Int      @id @default(autoincrement())
+  institutionId   Int
+  schoolYear      Int
+  unitsCount      Int      @default(4) // Alterado para alinhar com o front/back
+  pointsPerPeriod Decimal  @default(25) @db.Decimal(5, 2)
+  minAverage      Decimal  @default(6) @db.Decimal(5, 2)
+  minAttendance   Int      @default(75) // %
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
