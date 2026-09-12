@@ -1,5 +1,5 @@
 const express = require('express');
-const { getDashboardData, createNetworkSchool } = require('../controllers/networkController');
+const { getDashboardData, getInstitutionDeepDetails, createNetworkSchool } = require('../controllers/networkController');
 const { authMiddleware } = require('../middlewares/authMiddleware');
 const { networkMiddleware } = require('../middlewares/networkMiddleware');
 
@@ -9,6 +9,7 @@ router.use(authMiddleware);
 router.use(networkMiddleware);
 
 router.get('/dashboard', getDashboardData);
+router.get('/institutions/:institutionId/details', getInstitutionDeepDetails);
 router.post('/institutions', createNetworkSchool); 
 
 module.exports = router;

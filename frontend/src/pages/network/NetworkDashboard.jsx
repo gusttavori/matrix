@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import Card from '../../components/Card';
 import Loading from '../../components/Loading';
 import Table from '../../components/Table';
-import { Building, Users, BookOpen } from 'lucide-react';
+import Button from '../../components/Button';
+import { Building, Users, BookOpen, Search } from 'lucide-react';
 
 export default function NetworkDashboard() {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate(); // Hook de navegação adicionado
 
   useEffect(() => {
     async function loadData() {
@@ -27,7 +30,6 @@ export default function NetworkDashboard() {
 
   if (loading) return <Loading text="Consolidando dados da rede municipal..." />;
   
-  // TRAVA DE SEGURANÇA: Se a API falhou, não tenta desestruturar
   if (!dashboardData) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
@@ -40,10 +42,24 @@ export default function NetworkDashboard() {
   const { overview, schools } = dashboardData;
 
   const columns = [
-    { header: 'Unidade Escolar', accessor: 'name', width: '40%' },
-    { header: 'Cidade', render: (row) => `${row.city} / ${row.state}`, width: '30%' },
+    { header: 'Unidade Escolar', accessor: 'name', width: '35%' },
+    { header: 'Cidade', render: (row) => `${row.city} / ${row.state}`, width: '25%' },
     { header: 'Total de Alunos', accessor: 'totalStudents', width: '15%' },
     { header: 'Professores', accessor: 'totalTeachers', width: '15%' },
+    { 
+      header: 'Ações', 
+      render: (row) => (
+        <Button 
+          variant="secondary" 
+          size="sm" 
+          icon={Search} 
+          onClick={() => navigate(`/rede/escolas/${row.id}`)}
+        >
+          Inspecionar
+        </Button>
+      ), 
+      width: '10%' 
+    },
   ];
 
   return (

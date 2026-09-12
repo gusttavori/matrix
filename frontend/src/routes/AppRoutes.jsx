@@ -44,8 +44,9 @@ import StudentAttendancePage from '../pages/student/StudentAttendancePage';
 import StudentSubjectsPage from '../pages/student/StudentSubjectsPage';
 
 // Pages - Network (Secretaria B2G)
-import NetworkDashboard from '../pages/network/NetworkDashboard'; // NOVO DASHBOARD
+import NetworkDashboard from '../pages/network/NetworkDashboard'; 
 import NetworkSchoolForm from '../pages/network/NetworkSchoolForm';
+import NetworkSchoolDetails from '../pages/network/NetworkSchoolDetails'; // CORRIGIDO: importação com ../
 
 function LoginRedirect() {
   const { isAuthenticated, user } = useAuth();
@@ -57,7 +58,7 @@ function LoginRedirect() {
   const dashboards = {
     ADMIN: '/admin',
     SECRETARY: '/admin',
-    NETWORK_ADMIN: '/rede', // Redireciona o Secretário direto para /rede
+    NETWORK_ADMIN: '/rede', 
     TEACHER: '/professor',
     STUDENT: '/aluno'
   };
@@ -122,7 +123,9 @@ export default function AppRoutes() {
           }
         >
           <Route index element={<NetworkDashboard />} />
-          <Route path="nova-escola" element={<NetworkSchoolForm />} /> {/* NOVA ROTA */}
+          {/* CORRIGIDO: Rota relativa para não duplicar a barra /rede */}
+          <Route path="escolas/:id" element={<NetworkSchoolDetails />} /> 
+          <Route path="nova-escola" element={<NetworkSchoolForm />} /> 
         </Route>
 
         <Route

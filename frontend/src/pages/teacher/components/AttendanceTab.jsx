@@ -4,7 +4,7 @@ import { useToast } from '../../../hooks/useToast';
 import Card from '../../../components/Card';
 import Button from '../../../components/Button';
 import Input from '../../../components/Input';
-import { Save, AlertCircle, MessageSquare } from 'lucide-react';
+import { Save, AlertCircle, MessageSquare, Lock } from 'lucide-react';
 import Loading from '../../../components/Loading';
 
 export default function AttendanceTab({ classId, subjectId, students, periodId }) {
@@ -15,6 +15,21 @@ export default function AttendanceTab({ classId, subjectId, students, periodId }
   const [attendances, setAttendances] = useState({});
   const [observations, setObservations] = useState({});
   const [loading, setLoading] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+
+  // Verifica o status de bloqueio toda vez que o período muda
+  useEffect(() => {
+    const checkLockStatus = async () => {
+      try {
+        const res = await api.get(`/api/teacher-reports/closing-status/${classId}/${subjectId}/${periodId}`);
+        const statusData = res.data.data;
+        setIsLocked(statusData.period.isClosed || statusData.isSubmitted);
+      } catch (err) {
+        console.error("Erro ao verificar status de bloqueio");
+      }
+    };
+    if (periodId) checkLockStatus();
+  }, [classId, subjectId, periodId]);
 
   useEffect(() => {
     if (periodId) loadDayAttendance();
@@ -46,7 +61,7 @@ export default function AttendanceTab({ classId, subjectId, students, periodId }
       setObservations(obsMap);
     } catch (err) {
       if (err.response?.status === 403) {
-        error(err.response.data.message || 'Período fechado');
+        // Se a API barrar totalmente o acesso, limpamos a tela
         setLesson(null);
       } else {
         error('Erro ao carregar a chamada do dia');
@@ -57,14 +72,18 @@ export default function AttendanceTab({ classId, subjectId, students, periodId }
   };
 
   const handleStatusChange = (studentId, status) => {
+    if (isLocked) return;
     setAttendances(prev => ({ ...prev, [studentId]: status }));
   };
 
   const handleObsChange = (studentId, text) => {
+    if (isLocked) return;
     setObservations(prev => ({ ...prev, [studentId]: text }));
   };
 
   const saveAttendance = async () => {
+    if (isLocked) return;
+    
     try {
       const payload = {
         classId: parseInt(classId, 10),
@@ -99,12 +118,20 @@ export default function AttendanceTab({ classId, subjectId, students, periodId }
 
   return (
     <Card title="Chamada Rápida do Dia">
+      {isLocked && (
+        <div style={{ backgroundColor: 'var(--warning-50)', color: 'var(--warning-800)', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontWeight: '500' }}>
+          <Lock size={20} />
+          <span>O período está fechado. Modo apenas visualização.</span>
+        </div>
+      )}
+
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1rem', marginBottom: '1.5rem', maxWidth: '300px' }}>
         <Input 
           type="date" 
           label="Data da Aula" 
           value={date} 
           onChange={(e) => setDate(e.target.value)} 
+          disabled={loading} // O professor pode alterar a data para ver dias passados, mesmo bloqueado
         />
       </div>
 
@@ -112,7 +139,7 @@ export default function AttendanceTab({ classId, subjectId, students, periodId }
         <Loading text="Carregando lista..." />
       ) : lesson ? (
         <>
-          <div className="table-scroll" style={{ display: 'block', width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '0.5rem' }}>
+          <div className="table-scroll" style={{ display: 'block', width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '0.5rem', opacity: isLocked ? 0.7 : 1 }}>
             <table className="table" style={{ width: '100%', minWidth: '600px' }}>
               <thead>
                 <tr>
@@ -131,6 +158,7 @@ export default function AttendanceTab({ classId, subjectId, students, periodId }
                       <select
                         value={attendances[student.id]}
                         onChange={(e) => handleStatusChange(student.id, e.target.value)}
+                        disabled={isLocked}
                         style={{
                           padding: '0.65rem',
                           borderRadius: 'var(--radius-md)',
@@ -139,7 +167,7 @@ export default function AttendanceTab({ classId, subjectId, students, periodId }
                                            attendances[student.id] === 'ABSENT' ? 'var(--danger-50)' : 'var(--warning-50)',
                           color: attendances[student.id] === 'PRESENT' ? 'var(--success-700)' : 
                                  attendances[student.id] === 'ABSENT' ? 'var(--danger-700)' : 'var(--warning-700)',
-                          fontWeight: 'bold', width: '100%', minWidth: '120px', cursor: 'pointer', textAlign: 'center'
+                          fontWeight: 'bold', width: '100%', minWidth: '120px', cursor: isLocked ? 'not-allowed' : 'pointer', textAlign: 'center'
                         }}
                       >
                         <option value="PRESENT">Presente</option>
@@ -155,7 +183,8 @@ export default function AttendanceTab({ classId, subjectId, students, periodId }
                           placeholder="Anotação..."
                           value={observations[student.id] || ''}
                           onChange={(e) => handleObsChange(student.id, e.target.value)}
-                          style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: '0.875rem' }}
+                          disabled={isLocked}
+                          style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: '0.875rem', cursor: isLocked ? 'not-allowed' : 'text' }}
                         />
                       </div>
                     </td>
@@ -165,13 +194,15 @@ export default function AttendanceTab({ classId, subjectId, students, periodId }
             </table>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}>
-            <Button icon={Save} onClick={saveAttendance} size="lg">Salvar Frequência</Button>
-          </div>
+          {!isLocked && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}>
+              <Button icon={Save} onClick={saveAttendance} size="lg">Salvar Frequência</Button>
+            </div>
+          )}
         </>
       ) : (
         <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
-          <p>Não foi possível carregar a aula. Verifique se o bimestre está fechado.</p>
+          <p>Nenhuma aula agendada para esta data ou a unidade foi fechada.</p>
         </div>
       )}
     </Card>

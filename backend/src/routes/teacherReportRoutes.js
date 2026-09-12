@@ -153,20 +153,44 @@ router.get('/closing-status/:classId/:subjectId/:periodId', async (req, res, nex
       include: { grades: true }
     });
 
+    // --- NOVA CHECAGEM: Verifica se o diário já foi submetido ---
+    const submission = await prisma.teacherDiarySubmission.findFirst({
+      where: {
+        teacherId: teacher.id,
+        classId: parseInt(classId, 10),
+        subjectId: parseInt(subjectId, 10),
+        periodId: parseInt(periodId, 10)
+      }
+    });
+
+    const isSubmitted = !!submission;
+    // -------------------------------------------------------------
+
     const pendencies = [];
 
     // Check Lessons
+    const now = new Date();
+    const currentUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+
     if (lessons.length === 0) {
       pendencies.push({ type: 'LESSON', message: 'Nenhuma aula registrada neste bimestre.' });
     } else {
       lessons.forEach(lesson => {
+        const lessonDate = new Date(lesson.date);
+        const lessonUTC = Date.UTC(lessonDate.getUTCFullYear(), lessonDate.getUTCMonth(), lessonDate.getUTCDate());
+        
+        // Ignora aulas futuras para não gerar pendência de chamada antes da hora
+        if (lessonUTC > currentUTC) return;
+
+        const formattedDate = lessonDate.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+
         if (!lesson.title) {
-          pendencies.push({ type: 'LESSON', message: `Aula do dia ${new Date(lesson.date).toLocaleDateString('pt-BR')} não tem conteúdo registrado.` });
+          pendencies.push({ type: 'LESSON', message: `Aula do dia ${formattedDate} não tem conteúdo registrado.` });
         }
         if (lesson.attendances.length === 0) {
-          pendencies.push({ type: 'ATTENDANCE', message: `Chamada não realizada para a aula do dia ${new Date(lesson.date).toLocaleDateString('pt-BR')}.` });
+          pendencies.push({ type: 'ATTENDANCE', message: `Chamada não realizada para a aula do dia ${formattedDate}.` });
         } else if (lesson.attendances.length < students.length) {
-          pendencies.push({ type: 'ATTENDANCE', message: `Chamada incompleta para a aula do dia ${new Date(lesson.date).toLocaleDateString('pt-BR')} (faltam alunos).` });
+          pendencies.push({ type: 'ATTENDANCE', message: `Chamada incompleta para a aula do dia ${formattedDate} (faltam alunos).` });
         }
       });
     }
@@ -197,7 +221,8 @@ router.get('/closing-status/:classId/:subjectId/:periodId', async (req, res, nex
 
     return successResponse(res, {
       period,
-      isReady: pendencies.filter(p => p.type !== 'WARNING').length === 0,
+      isSubmitted, // Incluído na resposta
+      isReady: !isSubmitted && pendencies.filter(p => p.type !== 'WARNING').length === 0, // Atualizado
       pendencies,
       stats: {
         totalStudents: students.length,

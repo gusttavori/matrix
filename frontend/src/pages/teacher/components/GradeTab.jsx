@@ -4,7 +4,7 @@ import { useToast } from '../../../hooks/useToast';
 import Card from '../../../components/Card';
 import Button from '../../../components/Button';
 import Input from '../../../components/Input';
-import { Save, AlertCircle, MessageSquare } from 'lucide-react';
+import { Save, AlertCircle, MessageSquare, Lock } from 'lucide-react';
 import Loading from '../../../components/Loading';
 
 export default function GradeTab({ classId, subjectId, students, periodId }) {
@@ -12,12 +12,27 @@ export default function GradeTab({ classId, subjectId, students, periodId }) {
   
   const [assessments, setAssessments] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [isLocked, setIsLocked] = useState(false); // Novo estado de bloqueio
   
   const initialAssessment = { name: '', date: '', maxGrade: 10, isRecovery: false };
   const [newAssessment, setNewAssessment] = useState(initialAssessment);
   
   const [selectedAssessmentId, setSelectedAssessmentId] = useState(null);
   const [grades, setGrades] = useState({});
+
+  // Verifica o status de bloqueio toda vez que o período muda
+  useEffect(() => {
+    const checkLockStatus = async () => {
+      try {
+        const res = await api.get(`/api/teacher-reports/closing-status/${classId}/${subjectId}/${periodId}`);
+        const statusData = res.data.data;
+        setIsLocked(statusData.period.isClosed || statusData.isSubmitted);
+      } catch (err) {
+        console.error("Erro ao verificar status de bloqueio");
+      }
+    };
+    if (periodId) checkLockStatus();
+  }, [classId, subjectId, periodId]);
 
   useEffect(() => {
     if (periodId) loadAssessments();
@@ -38,7 +53,7 @@ export default function GradeTab({ classId, subjectId, students, periodId }) {
 
   const handleCreateAssessment = async (e) => {
     e.preventDefault();
-    if (!periodId) return;
+    if (!periodId || isLocked) return;
 
     try {
       const payload = {
@@ -79,7 +94,7 @@ export default function GradeTab({ classId, subjectId, students, periodId }) {
   };
 
   const saveGrades = async () => {
-    if (!selectedAssessmentId) return;
+    if (!selectedAssessmentId || isLocked) return;
 
     try {
       const payload = {
@@ -105,6 +120,7 @@ export default function GradeTab({ classId, subjectId, students, periodId }) {
   };
 
   const updateGrade = (studentId, field, val) => {
+    if (isLocked) return;
     setGrades(prev => ({
       ...prev,
       [studentId]: { ...prev[studentId], [field]: val }
@@ -137,19 +153,27 @@ export default function GradeTab({ classId, subjectId, students, periodId }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', width: '100%' }}>
+      
+      {isLocked && (
+        <div style={{ backgroundColor: 'var(--warning-50)', color: 'var(--warning-800)', padding: '1rem', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '0.75rem', fontWeight: '500' }}>
+          <Lock size={20} />
+          <span>O período está fechado. Modo apenas visualização de notas.</span>
+        </div>
+      )}
+
       {/* Formulário Compacto de Nova Avaliação */}
       <Card title="Nova Avaliação">
-        <form onSubmit={handleCreateAssessment} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
-          <Input label="Título da Avaliação" value={newAssessment.name} onChange={e => setNewAssessment({...newAssessment, name: e.target.value})} required placeholder="Ex: Prova Escrita" />
-          <Input label="Data" type="date" value={newAssessment.date} onChange={e => setNewAssessment({...newAssessment, date: e.target.value})} required />
-          <Input label="Nota Máxima" type="number" step="0.1" min="0" value={newAssessment.maxGrade} onChange={e => setNewAssessment({...newAssessment, maxGrade: e.target.value})} required />
+        <form onSubmit={handleCreateAssessment} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'flex-end', opacity: isLocked ? 0.6 : 1 }}>
+          <Input label="Título da Avaliação" value={newAssessment.name} onChange={e => setNewAssessment({...newAssessment, name: e.target.value})} required placeholder="Ex: Prova Escrita" disabled={isLocked} />
+          <Input label="Data" type="date" value={newAssessment.date} onChange={e => setNewAssessment({...newAssessment, date: e.target.value})} required disabled={isLocked} />
+          <Input label="Nota Máxima" type="number" step="0.1" min="0" value={newAssessment.maxGrade} onChange={e => setNewAssessment({...newAssessment, maxGrade: e.target.value})} required disabled={isLocked} />
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', paddingBottom: '0.5rem' }}>
-            <input type="checkbox" id="isRecovery" checked={newAssessment.isRecovery} onChange={e => setNewAssessment({...newAssessment, isRecovery: e.target.checked})} style={{ cursor: 'pointer', width: '1rem', height: '1rem' }} />
-            <label htmlFor="isRecovery" style={{ cursor: 'pointer', fontSize: '0.875rem', fontWeight: '500' }}>É recuperação</label>
+            <input type="checkbox" id="isRecovery" checked={newAssessment.isRecovery} onChange={e => setNewAssessment({...newAssessment, isRecovery: e.target.checked})} disabled={isLocked} style={{ cursor: isLocked ? 'not-allowed' : 'pointer', width: '1rem', height: '1rem' }} />
+            <label htmlFor="isRecovery" style={{ cursor: isLocked ? 'not-allowed' : 'pointer', fontSize: '0.875rem', fontWeight: '500' }}>É recuperação</label>
           </div>
 
-          <Button type="submit">Criar Avaliação</Button>
+          <Button type="submit" disabled={isLocked}>Criar Avaliação</Button>
         </form>
       </Card>
 
@@ -175,7 +199,7 @@ export default function GradeTab({ classId, subjectId, students, periodId }) {
                   <option value="">-- Selecione --</option>
                   {assessments.map(a => (
                     <option key={a.id} value={a.id}>
-                      {a.name} ({new Date(a.date).toLocaleDateString('pt-BR')}) - Máx: {a.maxGrade} pts {a.isRecovery ? '[REC]' : ''}
+                      {a.name} ({new Date(a.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}) - Máx: {a.maxGrade} pts {a.isRecovery ? '[REC]' : ''}
                     </option>
                   ))}
                 </select>
@@ -184,7 +208,7 @@ export default function GradeTab({ classId, subjectId, students, periodId }) {
 
             {selectedAssessmentId && (
               <>
-                <div className="table-scroll" style={{ width: '100%', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+                <div className="table-scroll" style={{ width: '100%', overflowX: 'auto', paddingBottom: '0.5rem', opacity: isLocked ? 0.8 : 1 }}>
                   <table className="table" style={{ width: '100%', minWidth: '900px' }}>
                     <thead>
                       <tr>
@@ -208,7 +232,8 @@ export default function GradeTab({ classId, subjectId, students, periodId }) {
                             <td>
                               <select 
                                 className="select" 
-                                style={{ padding: '0.25rem 0.5rem', height: 'auto', fontSize: '0.875rem' }}
+                                disabled={isLocked}
+                                style={{ padding: '0.25rem 0.5rem', height: 'auto', fontSize: '0.875rem', cursor: isLocked ? 'not-allowed' : 'pointer' }}
                                 value={g.status}
                                 onChange={(e) => {
                                   const val = e.target.value;
@@ -226,8 +251,8 @@ export default function GradeTab({ classId, subjectId, students, periodId }) {
                             <td>
                               <input 
                                 id={`grade-value-${idx}`}
-                                type="number" step="0.1" min="0" max={currentAssessment?.maxGrade} disabled={notTaken} className="input"
-                                style={{ padding: '0.25rem 0.5rem', height: 'auto', textAlign: 'center', backgroundColor: notTaken ? 'var(--gray-100)' : 'var(--bg-color)' }}
+                                type="number" step="0.1" min="0" max={currentAssessment?.maxGrade} disabled={notTaken || isLocked} className="input"
+                                style={{ padding: '0.25rem 0.5rem', height: 'auto', textAlign: 'center', backgroundColor: notTaken ? 'var(--gray-100)' : 'var(--bg-color)', cursor: (notTaken || isLocked) ? 'not-allowed' : 'text' }}
                                 value={g.value} onChange={(e) => updateGrade(student.id, 'value', e.target.value)} onKeyDown={(e) => handleKeyDown(e, student.id, 'value', idx)}
                               />
                             </td>
@@ -235,8 +260,8 @@ export default function GradeTab({ classId, subjectId, students, periodId }) {
                               <td>
                                 <input 
                                   id={`grade-rec-${idx}`}
-                                  type="number" step="0.1" min="0" max={currentAssessment?.maxGrade} disabled={notTaken} className="input"
-                                  style={{ padding: '0.25rem 0.5rem', height: 'auto', textAlign: 'center', backgroundColor: notTaken ? 'var(--gray-100)' : 'var(--bg-color)' }}
+                                  type="number" step="0.1" min="0" max={currentAssessment?.maxGrade} disabled={notTaken || isLocked} className="input"
+                                  style={{ padding: '0.25rem 0.5rem', height: 'auto', textAlign: 'center', backgroundColor: notTaken ? 'var(--gray-100)' : 'var(--bg-color)', cursor: (notTaken || isLocked) ? 'not-allowed' : 'text' }}
                                   value={g.recoveryGrade} onChange={(e) => updateGrade(student.id, 'recoveryGrade', e.target.value)} onKeyDown={(e) => handleKeyDown(e, student.id, 'rec', idx)}
                                 />
                               </td>
@@ -245,9 +270,9 @@ export default function GradeTab({ classId, subjectId, students, periodId }) {
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.35rem 0.75rem' }}>
                                 <MessageSquare size={16} color="var(--text-secondary)" />
                                 <input
-                                  type="text" placeholder="Adicionar observação sobre o aluno..." value={g.observation}
+                                  type="text" placeholder="Adicionar observação sobre o aluno..." value={g.observation} disabled={isLocked}
                                   onChange={(e) => updateGrade(student.id, 'observation', e.target.value)}
-                                  style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: '0.875rem' }}
+                                  style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: '0.875rem', cursor: isLocked ? 'not-allowed' : 'text' }}
                                 />
                               </div>
                             </td>
@@ -258,10 +283,12 @@ export default function GradeTab({ classId, subjectId, students, periodId }) {
                   </table>
                 </div>
                 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Dica: Pressione "Enter" para avançar entre as notas.</span>
-                  <Button icon={Save} onClick={saveGrades} size="lg">Salvar Notas</Button>
-                </div>
+                {!isLocked && (
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Dica: Pressione "Enter" para avançar entre as notas.</span>
+                    <Button icon={Save} onClick={saveGrades} size="lg">Salvar Notas</Button>
+                  </div>
+                )}
               </>
             )}
           </>

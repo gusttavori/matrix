@@ -1,6 +1,7 @@
 const prisma = require('../utils/prisma');
 const { successResponse } = require('../utils/apiResponse');
 const { hashPassword } = require('../services/authService');
+const { AppError } = require('../utils/AppError');
 
 const getDashboardData = async (req, res, next) => {
   try {
@@ -43,6 +44,7 @@ const getDashboardData = async (req, res, next) => {
       name: school.name,
       city: school.city,
       state: school.state,
+      type: school.type,
       totalStudents: school._count.students,
       totalTeachers: school._count.teachers,
     }));
@@ -56,15 +58,64 @@ const getDashboardData = async (req, res, next) => {
   }
 };
 
+const getInstitutionDeepDetails = async (req, res, next) => {
+  try {
+    const networkId = req.networkId;
+    const { institutionId } = req.params;
+
+    if (!networkId) {
+      throw new AppError('Rede de ensino não identificada.', 403);
+    }
+
+    const institution = await prisma.institution.findFirst({
+      where: { 
+        id: parseInt(institutionId, 10),
+        networkId: parseInt(networkId, 10)
+      },
+      include: {
+        students: {
+          include: { class: true },
+          orderBy: { name: 'asc' }
+        },
+        teachers: {
+          include: { 
+            teacherClassSubjects: { 
+              include: { subject: true, class: true } 
+            } 
+          }
+        },
+        classes: {
+          include: { 
+            _count: { select: { students: true } } 
+          }
+        },
+        academicPeriods: {
+          orderBy: { number: 'asc' }
+        },
+        subscriptions: {
+          include: { plan: true }
+        }
+      }
+    });
+
+    if (!institution) {
+      throw new AppError('Instituição não encontrada ou não pertence à sua rede.', 404);
+    }
+
+    return successResponse(res, institution);
+  } catch (error) {
+    next(error);
+  }
+};
+
 const createNetworkSchool = async (req, res, next) => {
   try {
     const networkId = req.networkId;
     const {
-      name, tradeName, document, email, phone, city, state,
+      name, tradeName, document, email, phone, city, state, type,
       adminName, adminEmail, adminPassword
     } = req.body;
 
-    // --- BLOQUEIO DE LIMITE DE UNIDADES (B2G) ---
     const network = await prisma.network.findUnique({
       where: { id: networkId },
       include: {
@@ -82,7 +133,6 @@ const createNetworkSchool = async (req, res, next) => {
         message: `Limite de unidades excedido. Sua rede atingiu o máximo de ${network.maxInstitutions} escolas contratadas.` 
       });
     }
-    // --------------------------------------------
 
     const existingUser = await prisma.user.findUnique({ where: { email: adminEmail } });
     if (existingUser) {
@@ -93,7 +143,7 @@ const createNetworkSchool = async (req, res, next) => {
 
     const defaultPlan = await prisma.plan.findFirst({ where: { active: true } });
     if (!defaultPlan) {
-      return res.status(400).json({ success: false, message: 'Nenhum plano ativo configurado no sistema. A Diretoria Matrix precisa criar um plano primeiro.' });
+      return res.status(400).json({ success: false, message: 'Nenhum plano ativo configurado no sistema.' });
     }
 
     const result = await prisma.$transaction(async (tx) => {
@@ -107,6 +157,7 @@ const createNetworkSchool = async (req, res, next) => {
           phone,
           city,
           state,
+          type: type || 'PUBLIC',
           active: true
         }
       });
@@ -139,4 +190,8 @@ const createNetworkSchool = async (req, res, next) => {
   }
 };
 
-module.exports = { getDashboardData, createNetworkSchool };
+module.exports = { 
+  getDashboardData, 
+  getInstitutionDeepDetails, 
+  createNetworkSchool 
+};

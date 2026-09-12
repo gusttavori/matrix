@@ -1,37 +1,31 @@
 const prisma = require('../utils/prisma');
 const { AppError } = require('../utils/AppError');
 
-const getMyInstitution = async (req, res, next) => {
-  try {
-    const institutionId = req.institutionId || req.user?.institutionId;
-    const institution = await prisma.institution.findUnique({
-      where: { id: parseInt(institutionId, 10) }
-    });
+const getMyInstitution = async (institutionId) => {
+  const institution = await prisma.institution.findUnique({
+    where: { id: parseInt(institutionId, 10) }
+  });
 
-    if (!institution) throw new AppError('Instituição não encontrada.', 404);
+  if (!institution) throw new AppError('Instituição não encontrada.', 404);
 
-    const subscription = await prisma.subscription.findFirst({
-      where: { institutionId: parseInt(institutionId, 10) },
-      orderBy: { createdAt: 'desc' },
-      include: { plan: true }
-    });
+  const subscription = await prisma.subscription.findFirst({
+    where: { institutionId: parseInt(institutionId, 10) },
+    orderBy: { createdAt: 'desc' },
+    include: { plan: true }
+  });
 
-    res.json({ success: true, data: { institution, subscription } });
-  } catch (error) { next(error); }
+  return { institution, subscription };
 };
 
-const updateInstitution = async (req, res, next) => {
-  try {
-    const institutionId = req.institutionId || req.user?.institutionId;
-    const { name, tradeName, phone, address, city, state } = req.body;
-    
-    const updated = await prisma.institution.update({
-      where: { id: parseInt(institutionId, 10) },
-      data: { name, tradeName, phone, address, city, state }
-    });
+const updateInstitution = async (institutionId, data) => {
+  const { name, tradeName, phone, address, city, state } = data;
+  
+  const updated = await prisma.institution.update({
+    where: { id: parseInt(institutionId, 10) },
+    data: { name, tradeName, phone, address, city, state }
+  });
 
-    res.json({ success: true, data: updated, message: 'Configurações atualizadas' });
-  } catch (error) { next(error); }
+  return updated;
 };
 
 const getAcademicSettings = async (req, res, next) => {
@@ -48,7 +42,9 @@ const getAcademicSettings = async (req, res, next) => {
     }
 
     res.json({ success: true, data: settings });
-  } catch (error) { next(error); }
+  } catch (error) { 
+    next(error); 
+  }
 };
 
 const updateAcademicSettings = async (req, res, next) => {
@@ -115,12 +111,65 @@ const updateAcademicSettings = async (req, res, next) => {
     }
 
     res.json({ success: true, data: settings, message: 'Regras e períodos atualizados com sucesso!' });
-  } catch (error) { next(error); }
+  } catch (error) { 
+    next(error); 
+  }
+};
+
+// --- NOVAS FUNÇÕES PARA GERENCIAR PERÍODOS ---
+
+const getAcademicPeriods = async (req, res, next) => {
+  try {
+    const institutionId = req.institutionId || req.user?.institutionId;
+    const currentYear = new Date().getFullYear();
+    
+    const periods = await prisma.academicPeriod.findMany({
+      where: { 
+        institutionId: parseInt(institutionId, 10),
+        schoolYear: currentYear
+      },
+      orderBy: { number: 'asc' }
+    });
+
+    res.json({ success: true, data: periods });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const togglePeriodStatus = async (req, res, next) => {
+  try {
+    const institutionId = req.institutionId || req.user?.institutionId;
+    const { periodId } = req.params;
+    const { isClosed } = req.body;
+
+    const period = await prisma.academicPeriod.findUnique({
+      where: { id: parseInt(periodId, 10) }
+    });
+
+    if (!period || period.institutionId !== parseInt(institutionId, 10)) {
+      throw new AppError('Período não encontrado ou não pertence a esta instituição.', 404);
+    }
+
+    // Atualiza apenas o status booleano
+    const updatedPeriod = await prisma.academicPeriod.update({
+      where: { id: parseInt(periodId, 10) },
+      data: { 
+        isClosed 
+      }
+    });
+
+    res.json({ success: true, data: updatedPeriod, message: `Período ${isClosed ? 'fechado' : 'reaberto'} com sucesso.` });
+  } catch (error) {
+    next(error);
+  }
 };
 
 module.exports = {
   getMyInstitution,
   updateInstitution,
   getAcademicSettings,
-  updateAcademicSettings
+  updateAcademicSettings,
+  getAcademicPeriods,
+  togglePeriodStatus
 };

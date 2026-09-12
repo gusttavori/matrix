@@ -4,13 +4,15 @@ import { useToast } from '../../../hooks/useToast';
 import Card from '../../../components/Card';
 import Button from '../../../components/Button';
 import Loading from '../../../components/Loading';
-import { AlertCircle, CheckCircle, AlertTriangle, Info } from 'lucide-react';
+import { AlertCircle, CheckCircle, AlertTriangle, Info, Lock } from 'lucide-react';
 
 export default function ClosingTab({ classId, subjectId, periodId }) {
-  const { error } = useToast();
+  const { error, success } = useToast();
   
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [data, setData] = useState(null);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     if (periodId) {
@@ -30,6 +32,24 @@ export default function ClosingTab({ classId, subjectId, periodId }) {
     }
   };
 
+  const handleSubmitDiary = async () => {
+    setSubmitting(true);
+    try {
+      await api.post(`/api/closing/submit-diary`, {
+        classId,
+        subjectId,
+        periodId
+      });
+      success('Diário entregue com sucesso à secretaria!');
+      setShowModal(false);
+      loadClosingStatus();
+    } catch (err) {
+      error(err.response?.data?.message || 'Erro ao entregar o diário.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (!periodId) {
     return (
       <Card>
@@ -43,7 +63,7 @@ export default function ClosingTab({ classId, subjectId, periodId }) {
 
   if (loading || !data) return <Loading text="Analisando pendências da unidade..." />;
 
-  const { isReady, pendencies, stats, period } = data;
+  const { isReady, isSubmitted, pendencies, stats, period } = data;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -51,14 +71,27 @@ export default function ClosingTab({ classId, subjectId, periodId }) {
       {period.isClosed ? (
         <div style={{ backgroundColor: 'var(--success-50)', border: '1px solid var(--success-200)', borderRadius: 'var(--radius-lg)', padding: '2rem', textAlign: 'center' }}>
           <CheckCircle size={48} style={{ color: 'var(--success-600)', margin: '0 auto 1rem' }} />
-          <h3 style={{ color: 'var(--success-800)', marginBottom: '0.5rem', fontWeight: 'bold' }}>Unidade Fechada</h3>
-          <p style={{ color: 'var(--success-700)' }}>Esta unidade foi encerrada e os dados estão bloqueados para edição.</p>
+          <h3 style={{ color: 'var(--success-800)', marginBottom: '0.5rem', fontWeight: 'bold' }}>Unidade Fechada pela Secretaria</h3>
+          <p style={{ color: 'var(--success-700)' }}>Esta unidade foi encerrada globalmente. Os dados estão bloqueados para edição.</p>
+        </div>
+      ) : isSubmitted ? (
+        <div style={{ backgroundColor: 'var(--primary-50)', border: '1px solid var(--primary-200)', borderRadius: 'var(--radius-lg)', padding: '2rem', textAlign: 'center' }}>
+          <Lock size={48} style={{ color: 'var(--primary-600)', margin: '0 auto 1rem' }} />
+          <h3 style={{ color: 'var(--primary-800)', marginBottom: '0.5rem', fontWeight: 'bold' }}>Diário Entregue à Secretaria</h3>
+          <p style={{ color: 'var(--primary-700)' }}>Você já entregou o diário desta unidade. As edições estão bloqueadas aguardando a validação final.</p>
         </div>
       ) : isReady ? (
         <div style={{ backgroundColor: 'var(--success-50)', border: '1px solid var(--success-200)', borderRadius: 'var(--radius-lg)', padding: '2rem', textAlign: 'center' }}>
           <CheckCircle size={48} style={{ color: 'var(--success-600)', margin: '0 auto 1rem' }} />
           <h3 style={{ color: 'var(--success-800)', marginBottom: '0.5rem', fontWeight: 'bold' }}>Tudo Pronto!</h3>
-          <p style={{ color: 'var(--success-700)' }}>Não há pendências de diário nesta unidade. Você está pronto para o fechamento.</p>
+          <p style={{ color: 'var(--success-700)', marginBottom: '1.5rem' }}>Não há pendências de diário nesta unidade. Você pode enviar seu diário para a secretaria.</p>
+          
+          <Button 
+            onClick={() => setShowModal(true)} 
+            style={{ backgroundColor: 'var(--success-600)', borderColor: 'var(--success-600)', margin: '0 auto' }}
+          >
+            Entregar Diário da Disciplina
+          </Button>
         </div>
       ) : (
         <div style={{ backgroundColor: 'var(--danger-50)', border: '1px solid var(--danger-200)', borderRadius: 'var(--radius-lg)', padding: '2rem' }}>
@@ -66,7 +99,7 @@ export default function ClosingTab({ classId, subjectId, periodId }) {
             <AlertTriangle size={32} style={{ color: 'var(--danger-600)' }} />
             <h3 style={{ color: 'var(--danger-800)', fontWeight: 'bold', margin: 0 }}>Existem Pendências</h3>
           </div>
-          <p style={{ color: 'var(--danger-700)', marginBottom: '1.5rem' }}>Resolva os itens abaixo antes de solicitar o fechamento da unidade à secretaria.</p>
+          <p style={{ color: 'var(--danger-700)', marginBottom: '1.5rem' }}>Resolva os itens abaixo antes de entregar o diário da unidade.</p>
           
           <ul style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingLeft: '1.5rem', color: 'var(--danger-700)' }}>
             {pendencies.filter(p => p.type !== 'WARNING').map((p, idx) => (
@@ -76,17 +109,21 @@ export default function ClosingTab({ classId, subjectId, periodId }) {
         </div>
       )}
 
-      {pendencies.filter(p => p.type === 'WARNING').length > 0 && (
-        <div style={{ backgroundColor: 'var(--warning-50)', border: '1px solid var(--warning-200)', borderRadius: 'var(--radius-md)', padding: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-            <Info size={24} style={{ color: 'var(--warning-600)' }} />
-            <h4 style={{ color: 'var(--warning-800)', fontWeight: 'bold', margin: 0 }}>Avisos</h4>
+      {/* Modal de Confirmação */}
+      {showModal && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: 'var(--radius-lg)', maxWidth: '450px', width: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
+            <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)', fontWeight: 'bold' }}>Confirmar Entrega do Diário</h3>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', lineHeight: '1.5' }}>
+              Tem certeza que deseja entregar? <strong>Após a entrega, nenhuma informação poderá ser editada.</strong>
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+              <Button variant="secondary" onClick={() => setShowModal(false)} disabled={submitting}>Cancelar</Button>
+              <Button onClick={handleSubmitDiary} loading={submitting} style={{ backgroundColor: 'var(--success-600)', borderColor: 'var(--success-600)' }}>
+                Sim, Entregar Diário
+              </Button>
+            </div>
           </div>
-          <ul style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingLeft: '1.5rem', color: 'var(--warning-700)', marginTop: '0.5rem' }}>
-            {pendencies.filter(p => p.type === 'WARNING').map((p, idx) => (
-              <li key={idx}>{p.message.replace(/bimestre/gi, 'unidade')}</li>
-            ))}
-          </ul>
         </div>
       )}
 

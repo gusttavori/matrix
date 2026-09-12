@@ -6,13 +6,14 @@ import Button from '../../components/Button';
 import Card from '../../components/Card';
 import Input from '../../components/Input';
 import Loading from '../../components/Loading';
-import { AlertTriangle, Building, BookOpen } from 'lucide-react';
+import { AlertTriangle, Building, BookOpen, Calendar, Lock, Unlock } from 'lucide-react';
 
 export default function SettingsPage() {
   const { institution, user, fetchInstitutionData } = useAuth();
   const { success, error } = useToast();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('institution');
+  const [periods, setPeriods] = useState([]);
 
   const isAdmin = user?.role === 'ADMIN';
 
@@ -53,7 +54,22 @@ export default function SettingsPage() {
         console.log('Regras acadêmicas padrão em uso.');
       }
     };
-    if (isAdmin) fetchAcademicSettings();
+
+    const fetchPeriods = async () => {
+      try {
+        const res = await api.get('/api/institutions/academic-periods');
+        if (res.data?.data) {
+          setPeriods(res.data.data);
+        }
+      } catch (err) {
+        console.log('Nenhum período encontrado.');
+      }
+    };
+
+    if (isAdmin) {
+      fetchAcademicSettings();
+      fetchPeriods();
+    }
   }, [isAdmin]);
 
   const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.id]: e.target.value }));
@@ -81,10 +97,28 @@ export default function SettingsPage() {
     try {
       await api.put('/api/institutions/academic-settings', academicData);
       success('Regras acadêmicas atualizadas com sucesso.');
+      // Atualiza a lista de períodos após gerar os novos
+      const res = await api.get('/api/institutions/academic-periods');
+      if (res.data?.data) setPeriods(res.data.data);
     } catch (err) {
-      error(err.response?.data?.message || 'Não foi possível salvar as regras acadêmicas. Verifique os dados e tente novamente.');
+      error(err.response?.data?.message || 'Erro ao salvar regras acadêmicas.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const togglePeriod = async (periodId, currentStatus) => {
+    if (!isAdmin) return;
+    try {
+      await api.patch(`/api/institutions/academic-periods/${periodId}/status`, {
+        isClosed: !currentStatus
+      });
+      success(`Período ${!currentStatus ? 'fechado' : 'reaberto'} com sucesso.`);
+      
+      const res = await api.get('/api/institutions/academic-periods');
+      if (res.data?.data) setPeriods(res.data.data);
+    } catch (err) {
+      error('Erro ao alterar status do período.');
     }
   };
 
@@ -104,7 +138,7 @@ export default function SettingsPage() {
           <div style={{ padding: '1rem', backgroundColor: 'var(--warning-50)', color: 'var(--warning-800)', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem', display: 'flex', gap: '0.75rem', alignItems: 'center', fontWeight: '500' }}>
             <AlertTriangle size={24} />
             <div>
-              <strong>Acesso Restrito:</strong> Seu perfil de Secretaria permite apenas a visualização. Alterações exigem acesso de Administrador.
+              <strong>Acesso Restrito:</strong> Seu perfil permite apenas visualização.
             </div>
           </div>
         )}
@@ -123,6 +157,15 @@ export default function SettingsPage() {
               style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', border: 'none', background: 'none', borderBottom: activeTab === 'academic' ? '2px solid var(--primary-600)' : '2px solid transparent', color: activeTab === 'academic' ? 'var(--primary-700)' : 'var(--text-secondary)', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.2s' }}
             >
               <BookOpen size={18} /> Regras Acadêmicas
+            </button>
+          )}
+
+          {isAdmin && (
+            <button 
+              onClick={() => setActiveTab('periods')}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', border: 'none', background: 'none', borderBottom: activeTab === 'periods' ? '2px solid var(--primary-600)' : '2px solid transparent', color: activeTab === 'periods' ? 'var(--primary-700)' : 'var(--text-secondary)', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.2s' }}
+            >
+              <Calendar size={18} /> Períodos Letivos
             </button>
           )}
         </div>
@@ -155,13 +198,49 @@ export default function SettingsPage() {
               <Input id="unitsCount" type="number" min="1" max="6" label="Quantidade de Unidades / Períodos no Ano" value={academicData.unitsCount} onChange={handleAcademicChange} required />
               
               <div style={{ gridColumn: '1 / -1', padding: '1rem', backgroundColor: 'var(--primary-50)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem', color: 'var(--primary-800)' }}>
-                <strong>Atenção:</strong> Alterar a média ou a distribuição de pontos no meio do ano letivo recalculará automaticamente a situação de todos os alunos (Aprovado/Reprovado/Recuperação) nos relatórios gerenciais.
+                <strong>Atenção:</strong> Alterar a média ou a distribuição de pontos no meio do ano letivo recalculará automaticamente a situação de todos os alunos.
               </div>
 
               <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
                 <Button type="submit" loading={loading}>Atualizar Regras</Button>
               </div>
             </form>
+          </Card>
+        )}
+
+        {activeTab === 'periods' && isAdmin && (
+          <Card title="Gerenciamento de Períodos Letivos">
+            {periods.length === 0 ? (
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                Nenhum período gerado. Por favor, atualize as "Regras Acadêmicas" primeiro.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {periods.map(period => (
+                  <div key={period.id} style={{ 
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+                    padding: '1rem', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)',
+                    backgroundColor: period.isClosed ? 'var(--bg-color-alt)' : 'white'
+                  }}>
+                    <div>
+                      <h4 style={{ margin: '0 0 0.25rem 0', fontWeight: 'bold' }}>{period.name}</h4>
+                      <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                        Status: <strong style={{ color: period.isClosed ? 'var(--danger-600)' : 'var(--success-600)' }}>
+                          {period.isClosed ? 'Fechado' : 'Aberto'}
+                        </strong>
+                      </p>
+                    </div>
+                    <Button 
+                      variant={period.isClosed ? "primary" : "danger"} 
+                      icon={period.isClosed ? Unlock : Lock}
+                      onClick={() => togglePeriod(period.id, period.isClosed)}
+                    >
+                      {period.isClosed ? "Reabrir Período" : "Fechar Período"}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </Card>
         )}
       </div>

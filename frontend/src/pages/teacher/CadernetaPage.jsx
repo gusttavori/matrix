@@ -6,7 +6,6 @@ import Button from '../../components/Button';
 import Loading from '../../components/Loading';
 import { Calendar, ClipboardList, CheckSquare, ArrowLeft, BookOpen, BarChart2, Lock } from 'lucide-react';
 
-// Tabs
 import AttendanceTab from './components/AttendanceTab';
 import LessonTab from './components/LessonTab';
 import GradeTab from './components/GradeTab';
@@ -27,53 +26,61 @@ export default function CadernetaPage() {
   const [selectedPeriodId, setSelectedPeriodId] = useState('');
 
   useEffect(() => {
+    let isMounted = true;
+    
+    const loadBaseData = async () => {
+      try {
+        const res = await api.get(`/api/teacher-panel/class/${classId}/students`);
+        
+        const classRes = await api.get('/api/teacher-panel/classes');
+        const relation = classRes.data.data.find(
+          c => c.classId === parseInt(classId) && c.subjectId === parseInt(subjectId)
+        );
+
+        if (relation) {
+          if (isMounted) {
+            setStudents(res.data.data);
+            setMetadata({ cls: relation.class, sub: relation.subject });
+            await loadPeriods(relation.class.schoolYear, isMounted);
+          }
+        } else {
+          throw new Error('Vínculo de turma não encontrado.');
+        }
+      } catch (err) {
+        console.error('Erro detalhado ao carregar caderneta:', err);
+        if (isMounted) {
+          error('Erro ao carregar dados da turma');
+          navigate('/professor');
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
     loadBaseData();
+    return () => { isMounted = false; };
   }, [classId, subjectId]);
 
-  const loadBaseData = async () => {
-    try {
-      const res = await api.get(`/api/teacher-panel/class/${classId}/students`);
-      setStudents(res.data.data);
-      
-      const classRes = await api.get('/api/teacher-panel/classes');
-      const relation = classRes.data.data.find(
-        c => c.classId === parseInt(classId) && c.subjectId === parseInt(subjectId)
-      );
-
-      if (relation) {
-        setMetadata({ cls: relation.class, sub: relation.subject });
-        await loadPeriods(relation.class.schoolYear);
-      } else {
-        throw new Error('Vínculo de turma não encontrado.');
-      }
-    } catch (err) {
-      console.error('Erro detalhado ao carregar caderneta:', err);
-      error('Erro ao carregar dados da turma');
-      navigate('/professor');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadPeriods = async (year) => {
+  const loadPeriods = async (year, isMounted) => {
     try {
       const res = await api.get(`/api/teacher-panel/periods?schoolYear=${year}`);
       const per = res.data.data;
-      setPeriods(per);
-      
-      if (per.length > 0) {
-        const openPeriod = per.find(p => !p.isClosed);
-        setSelectedPeriodId(openPeriod ? openPeriod.id : per[0].id);
+      if (isMounted) {
+        setPeriods(per);
+        if (per.length > 0) {
+          const openPeriod = per.find(p => !p.isClosed);
+          setSelectedPeriodId(openPeriod ? String(openPeriod.id) : String(per[0].id));
+        }
       }
     } catch (err) {
       console.error('Erro ao carregar unidades:', err);
-      error('Erro ao carregar unidades');
+      if (isMounted) error('Erro ao carregar unidades');
     }
   };
 
   if (loading) return <Loading text="Carregando Diário de Classe..." />;
 
-  const currentPeriod = periods.find(p => p.id === parseInt(selectedPeriodId));
+  const currentPeriod = periods.find(p => String(p.id) === selectedPeriodId);
 
   return (
     <div style={{ minWidth: 0, width: '100%', maxWidth: '100%' }}>

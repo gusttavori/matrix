@@ -29,6 +29,7 @@ async function main() {
   await prisma.institution.deleteMany();
   await prisma.network.deleteMany();
   await prisma.plan.deleteMany();
+  await prisma.teacherDiarySubmission.deleteMany();
 
   // 2. Recriar a conta da Diretoria (Super Admin)
   console.log('👑 Recriando conta da Diretoria (SuperAdmin)...');

@@ -1,74 +1,97 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { useToast } from '../../hooks/useToast';
 import Card from '../../components/Card';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
-import { Building2, UserPlus, Save } from 'lucide-react';
+import { Save, ArrowLeft } from 'lucide-react';
 
 export default function NetworkSchoolForm() {
+  const navigate = useNavigate();
   const { success, error } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '', tradeName: '', document: '', email: '', phone: '', city: '', state: '',
-    adminName: '', adminEmail: '', adminPassword: ''
+  const [saving, setSaving] = useState(false);
+
+  // 1. ADICIONE O CAMPO type AQUI NO ESTADO INICIAL
+  const [form, setForm] = useState({
+    name: '',
+    tradeName: '',
+    document: '',
+    email: '',
+    phone: '',
+    city: '',
+    state: '',
+    type: 'PUBLIC', // Padrão: Pública
+    adminName: '',
+    adminEmail: '',
+    adminPassword: ''
   });
 
-  const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.id]: e.target.value }));
-
-  const handleSubmit = async (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setSaving(true);
     try {
-      await api.post('/api/network/institutions', formData);
-      success('Unidade Escolar e Diretor criados com sucesso!');
-      setFormData({
-        name: '', tradeName: '', document: '', email: '', phone: '', city: '', state: '',
-        adminName: '', adminEmail: '', adminPassword: ''
-      });
+      await api.post('/api/network/institutions', form);
+      success('Escola criada com sucesso!');
+      navigate('/rede');
     } catch (err) {
-      error(err.response?.data?.message || 'Erro ao criar a unidade escolar.');
+      error(err.response?.data?.message || 'Erro ao criar escola.');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-      <div className="page-header" style={{ marginBottom: '2rem' }}>
-        <h1 className="page-header__title">Cadastrar Nova Unidade Escolar</h1>
-        <p className="page-header__subtitle">Adicione uma escola à sua rede e crie o acesso do Diretor local</p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+        <Button variant="secondary" icon={ArrowLeft} onClick={() => navigate('/rede')} />
+        <h1 className="page-header__title" style={{ margin: 0 }}>Nova Unidade Escolar</h1>
       </div>
 
-      <form onSubmit={handleSubmit}>
-        <Card title="Dados da Escola" style={{ marginBottom: '1.5rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div style={{ gridColumn: '1 / -1' }}>
-              <Input id="name" label="Razão Social / Nome Oficial *" value={formData.name} onChange={handleChange} required />
+      <form onSubmit={handleSave}>
+        <Card title="Dados da Instituição" style={{ marginBottom: '1.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+            <Input label="Nome Oficial da Escola" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
+            <Input label="Nome Fantasia (Opcional)" value={form.tradeName} onChange={e => setForm({...form, tradeName: e.target.value})} />
+            <Input label="CNPJ / Documento (Opcional)" value={form.document} onChange={e => setForm({...form, document: e.target.value})} />
+            <Input label="E-mail Institucional" type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} required />
+            <Input label="Telefone / WhatsApp" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
+            <Input label="Cidade" value={form.city} onChange={e => setForm({...form, city: e.target.value})} required />
+            <Input label="Estado (UF)" value={form.state} onChange={e => setForm({...form, state: e.target.value})} maxLength={2} required />
+            
+            {/* 2. ADICIONE O SELETOR DE TIPO AQUI NO FORMULÁRIO */}
+            <div className="form-group">
+              <label className="form-group__label">Tipo de Instituição *</label>
+              <select 
+                className="input" 
+                value={form.type} 
+                onChange={(e) => setForm({...form, type: e.target.value})}
+                required
+              >
+                <option value="PUBLIC">Pública</option>
+                <option value="PRIVATE">Privada</option>
+              </select>
             </div>
-            <div style={{ gridColumn: '1 / -1' }}>
-              <Input id="tradeName" label="Nome Fantasia (Como a escola é conhecida) *" value={formData.tradeName} onChange={handleChange} required />
-            </div>
-            <Input id="document" label="CNPJ / INEP" value={formData.document} onChange={handleChange} />
-            <Input id="email" type="email" label="E-mail Institucional *" value={formData.email} onChange={handleChange} required />
-            <Input id="phone" label="Telefone" value={formData.phone} onChange={handleChange} />
-            <Input id="city" label="Cidade *" value={formData.city} onChange={handleChange} required />
-            <Input id="state" label="Estado (UF) *" value={formData.state} onChange={handleChange} maxLength={2} required />
+
           </div>
         </Card>
 
-        <Card title="Credenciais do Diretor" style={{ marginBottom: '1.5rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div style={{ gridColumn: '1 / -1' }}>
-              <Input id="adminName" label="Nome Completo do Diretor *" value={formData.adminName} onChange={handleChange} required />
-            </div>
-            <Input id="adminEmail" type="email" label="E-mail de Acesso do Diretor *" value={formData.adminEmail} onChange={handleChange} required />
-            <Input id="adminPassword" type="password" label="Senha Inicial *" value={formData.adminPassword} onChange={handleChange} required />
+        <Card title="Acesso do Diretor / Gestor" style={{ marginBottom: '1.5rem' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
+            Crie a conta de acesso principal para a administração desta unidade.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+            <Input label="Nome do Diretor" value={form.adminName} onChange={e => setForm({...form, adminName: e.target.value})} required />
+            <Input label="E-mail de Login" type="email" value={form.adminEmail} onChange={e => setForm({...form, adminEmail: e.target.value})} required />
+            <Input label="Senha Provisória" type="password" value={form.adminPassword} onChange={e => setForm({...form, adminPassword: e.target.value})} required />
           </div>
         </Card>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <Button type="submit" icon={Save} loading={loading} size="lg">Salvar Escola</Button>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+          <Button type="button" variant="secondary" onClick={() => navigate('/rede')}>Cancelar</Button>
+          <Button type="submit" icon={Save} disabled={saving}>
+            {saving ? 'Criando Escola...' : 'Confirmar Criação'}
+          </Button>
         </div>
       </form>
     </div>

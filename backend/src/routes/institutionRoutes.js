@@ -32,6 +32,8 @@ router.get('/me', async (req, res, next) => {
 });
 
 router.get('/academic-settings', institutionController.getAcademicSettings);
+router.get('/academic-periods', institutionController.getAcademicPeriods);
+router.patch('/academic-periods/:periodId/status', institutionController.togglePeriodStatus);
 router.put('/academic-settings', institutionController.updateAcademicSettings);
 
 // Apenas ADMIN pode atualizar dados da instituição
